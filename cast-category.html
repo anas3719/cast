@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>قسم جديد | الكاست والمصورين</title>
+    <meta name="description" content="قسم مستقل لعرض الملفات واختيارها." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="cast-styles.css?v=20260808-141935" />
+  </head>
+  <body class="cast-page cast-list-page">
+    <header id="top" class="site-header" aria-label="التنقل الرئيسي">
+      <a class="brand" href="cast.html">الكاست والمصورين</a>
+      <nav></nav>
+    </header>
+
+    <main>
+      <section class="cast-category-hero">
+        <div>
+          <p class="eyebrow">قسم الكاست</p>
+          <h1>القسم</h1>
+          <p class="lead">افتح ملف أي شخص لمشاهدة أعماله، ثم أضفه إلى اختياراتك.</p>
+        </div>
+        <a class="button secondary" href="cast.html">الرجوع للرئيسية</a>
+      </section>
+
+      <div id="castSections" class="cast-sections" aria-live="polite"></div>
+
+      <section id="request" class="cast-request-bar" aria-label="إرسال الطلب">
+        <div>
+          <p class="eyebrow">الاختيارات</p>
+          <h2>إرسال الطلب</h2>
+          <p id="selectedSummary">اختر ملف واحد أو أكثر لتجهيز رسالة واتساب.</p>
+        </div>
+        <a
+          id="sendCastRequest"
+          class="button primary is-disabled"
+          href="https://wa.me/966599599527"
+          target="_blank"
+          rel="noreferrer"
+          aria-disabled="true"
+        >
+          إرسال الطلب
+        </a>
+      </section>
+    </main>
+
+    <footer>
+      <span>© 2026 الكاست والمصورين</span>
+      <a href="cast.html">الرجوع للرئيسية</a>
+    </footer>
+
+    <a class="back-to-top" href="#top" aria-label="العودة لأعلى الصفحة" title="العودة للأعلى">↑</a>
+
+    <script src="cast-categories.js?v=20260808-141935"></script>
+    <script src="cast-data.js?v=20260808-141935"></script>
+    <script src="cast.js?v=20260808-141935"></script>
+  </body>
+</html>

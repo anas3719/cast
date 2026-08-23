@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex,nofollow" />
+    <meta name="theme-color" content="#071014" />
+    <title>لوحة إدارة الكاست</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="cast-admin.css?v=20260808-7" />
+  </head>
+  <body>
+    <header class="admin-header">
+      <div class="admin-brand">
+        <a href="cast.html" class="brand-link" aria-label="العودة إلى صفحة الكاست">
+          الكاست
+        </a>
+        <div>
+          <h1>لوحة الإدارة</h1>
+          <p id="sync-status" class="sync-status" aria-live="polite">جاري تحميل البيانات</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <button id="reload-data" class="icon-button" type="button" title="تحديث البيانات" aria-label="تحديث البيانات">
+          <i data-lucide="refresh-cw" aria-hidden="true"></i>
+        </button>
+        <button id="security-settings" class="icon-button" type="button" title="حماية لوحة الإدارة" aria-label="حماية لوحة الإدارة">
+          <i data-lucide="shield-check" aria-hidden="true"></i>
+        </button>
+        <button id="github-connect" class="button button-secondary" type="button">
+          <i data-lucide="key-round" aria-hidden="true"></i>
+          <span>اتصال GitHub</span>
+        </button>
+        <button id="publish-changes" class="button button-primary" type="button" disabled>
+          <i data-lucide="cloud-upload" aria-hidden="true"></i>
+          <span>نشر التغييرات</span>
+        </button>
+      </div>
+    </header>
+
+    <main class="admin-main">
+      <aside class="directory-panel" aria-label="قائمة البروفايلات">
+        <div class="directory-toolbar">
+          <label class="search-field">
+            <i data-lucide="search" aria-hidden="true"></i>
+            <span class="sr-only">بحث بالاسم</span>
+            <input id="profile-search" type="search" placeholder="بحث بالاسم" autocomplete="off" />
+          </label>
+
+          <label class="select-field">
+            <span class="sr-only">تصفية حسب القسم</span>
+            <select id="category-filter">
+              <option value="all">كل الأقسام</option>
+              <option value="men">شباب</option>
+              <option value="women">بنات</option>
+              <option value="boys">أطفال أولاد</option>
+              <option value="girls">أطفال بنات</option>
+              <option value="seniorMen">كبار سن رجال</option>
+              <option value="seniorWomen">كبار سن سيدات</option>
+              <option value="photographers">مصورين</option>
+            </select>
+            <i data-lucide="chevron-down" aria-hidden="true"></i>
+          </label>
+        </div>
+
+        <div class="directory-heading">
+          <div>
+            <h2>البروفايلات</h2>
+            <span id="profiles-count" class="profiles-count">0 ملف</span>
+          </div>
+          <div class="directory-actions">
+            <button id="manage-categories" class="button button-secondary" type="button">
+              <i data-lucide="palette" aria-hidden="true"></i>
+              <span>إدارة الأقسام</span>
+            </button>
+            <button id="add-profile" class="button button-add" type="button">
+              <i data-lucide="user-plus" aria-hidden="true"></i>
+              <span>إضافة بروفايل</span>
+            </button>
+          </div>
+        </div>
+
+        <div id="profiles-list" class="profiles-list"></div>
+        <div id="empty-list" class="empty-list" hidden>لا توجد نتائج</div>
+      </aside>
+
+      <section class="editor-panel" aria-labelledby="editor-title">
+        <div id="editor-empty" class="editor-empty">
+          <i data-lucide="contact-round" aria-hidden="true"></i>
+          <h2>اختر بروفايل للتعديل</h2>
+          <button id="empty-add-profile" class="button button-primary" type="button">
+            <i data-lucide="user-plus" aria-hidden="true"></i>
+            <span>إضافة بروفايل جديد</span>
+          </button>
+        </div>
+
+        <form id="profile-form" class="profile-form" hidden novalidate>
+          <div class="editor-heading">
+            <div>
+              <p id="editor-mode" class="editor-mode">تعديل البروفايل</p>
+              <h2 id="editor-title">بيانات البروفايل</h2>
+            </div>
+            <span id="completion-status" class="completion-status">بيانات ناقصة</span>
+          </div>
+
+          <div class="profile-workspace">
+            <div class="photo-column">
+              <div class="photo-preview">
+                <img id="profile-preview" alt="معاينة صورة البروفايل" />
+                <div id="photo-placeholder" class="photo-placeholder">
+                  <i data-lucide="image" aria-hidden="true"></i>
+                  <span>معاينة الصورة</span>
+                </div>
+              </div>
+
+              <label class="field field-full">
+                <span>رابط صورة الدرايف</span>
+                <input id="profile-photo" name="photo" type="url" inputmode="url" placeholder="الصق رابط الصورة" />
+              </label>
+            </div>
+
+            <div class="fields-grid">
+              <label class="field field-wide">
+                <span>الاسم</span>
+                <input id="profile-name" name="name" type="text" autocomplete="off" required />
+              </label>
+
+              <label class="field">
+                <span>القسم</span>
+                <select id="profile-category" name="category" required>
+                  <option value="men">شباب</option>
+                  <option value="women">بنات</option>
+                  <option value="boys">أطفال أولاد</option>
+                  <option value="girls">أطفال بنات</option>
+                  <option value="seniorMen">كبار سن رجال</option>
+                  <option value="seniorWomen">كبار سن سيدات</option>
+                  <option value="photographers">مصورين</option>
+                </select>
+              </label>
+
+              <label class="field field-wide">
+                <span>رابط مجلد الأعمال</span>
+                <input id="profile-folder" name="folder" type="url" inputmode="url" placeholder="رابط مجلد Google Drive" required />
+              </label>
+
+              <label class="field cast-detail-field">
+                <span>العمر</span>
+                <input id="profile-age" name="age" type="number" inputmode="numeric" min="0" max="120" />
+              </label>
+
+              <label class="field cast-detail-field">
+                <span>الطول</span>
+                <input id="profile-height" name="height" type="number" inputmode="numeric" min="0" max="250" />
+              </label>
+
+              <label class="field cast-detail-field">
+                <span>الوزن</span>
+                <input id="profile-weight" name="weight" type="number" inputmode="numeric" min="0" max="300" />
+              </label>
+
+              <label class="field cast-detail-field">
+                <span>الجنسية</span>
+                <input id="profile-nationality" name="nationality" type="text" autocomplete="off" />
+              </label>
+
+              <label class="field cast-detail-field">
+                <span>التحدث</span>
+                <select id="profile-speaking" name="speaking">
+                  <option value="">يضاف لاحقاً</option>
+                  <option value="متحدث">متحدث</option>
+                  <option value="غير متحدث">غير متحدث</option>
+                  <option value="متحدثة">متحدثة</option>
+                  <option value="غير متحدثة">غير متحدثة</option>
+                </select>
+              </label>
+
+              <label class="field field-wide cast-detail-field">
+                <span>ملاحظة</span>
+                <textarea id="profile-note" name="note" rows="3"></textarea>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button id="delete-profile" class="button button-danger" type="button">
+              <i data-lucide="trash-2" aria-hidden="true"></i>
+              <span>حذف البروفايل</span>
+            </button>
+            <div>
+              <button id="cancel-edit" class="button button-ghost" type="button">إلغاء</button>
+              <button class="button button-primary" type="submit">
+                <i data-lucide="save" aria-hidden="true"></i>
+                <span>حفظ البروفايل</span>
+              </button>
+            </div>
+          </div>
+        </form>
+      </section>
+    </main>
+
+    <dialog id="admin-lock-dialog" class="admin-dialog admin-lock-dialog">
+      <form id="admin-lock-form" method="dialog">
+        <div class="lock-dialog-heading">
+          <span class="lock-dialog-icon"><i data-lucide="lock-keyhole" aria-hidden="true"></i></span>
+          <div>
+            <h2>لوحة الإدارة محمية</h2>
+            <p>أدخل كلمة المرور للمتابعة.</p>
+          </div>
+        </div>
+
+        <label class="field field-full">
+          <span>كلمة المرور</span>
+          <input id="admin-password" type="password" autocomplete="current-password" required />
+        </label>
+
+        <label class="session-option">
+          <input id="remember-admin-device" type="checkbox" checked />
+          <span>تذكر هذا الجهاز وعدم طلب كلمة المرور مرة أخرى</span>
+        </label>
+
+        <div id="admin-lock-error" class="dialog-error" role="alert" hidden></div>
+
+        <div class="dialog-actions">
+          <button id="unlock-admin" class="button button-primary" type="submit">
+            <i data-lucide="log-in" aria-hidden="true"></i>
+            <span>دخول</span>
+          </button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="security-dialog" class="admin-dialog">
+      <form id="security-form" method="dialog">
+        <div class="dialog-heading">
+          <div>
+            <h2>حماية لوحة الإدارة</h2>
+            <p>عيّن كلمة مرور تُطلب على أي جهاز أو متصفح جديد.</p>
+          </div>
+          <button id="close-security-dialog" class="icon-button" type="button" aria-label="إغلاق">
+            <i data-lucide="x" aria-hidden="true"></i>
+          </button>
+        </div>
+
+        <label class="field field-full">
+          <span>كلمة المرور الجديدة</span>
+          <input id="new-admin-password" type="password" minlength="6" autocomplete="new-password" required />
+        </label>
+
+        <label class="field field-full">
+          <span>تأكيد كلمة المرور</span>
+          <input id="confirm-admin-password" type="password" minlength="6" autocomplete="new-password" required />
+        </label>
+
+        <div id="security-error" class="dialog-error" role="alert" hidden></div>
+
+        <div class="dialog-actions">
+          <button id="remove-admin-password" class="button button-danger" type="button" hidden>
+            <i data-lucide="shield-off" aria-hidden="true"></i>
+            <span>إزالة الحماية</span>
+          </button>
+          <button id="cancel-security" class="button button-ghost" type="button">إلغاء</button>
+          <button class="button button-primary" type="submit">
+            <i data-lucide="save" aria-hidden="true"></i>
+            <span>حفظ كلمة المرور</span>
+          </button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="github-dialog" class="admin-dialog">
+      <form id="github-form" method="dialog">
+        <div class="dialog-heading">
+          <div>
+            <h2>اتصال GitHub</h2>
+            <p>رمز محدود لمستودع الموقع وصلاحية Contents: Read and write</p>
+          </div>
+          <button id="close-github-dialog" class="icon-button" type="button" aria-label="إغلاق">
+            <i data-lucide="x" aria-hidden="true"></i>
+          </button>
+        </div>
+
+        <label class="field field-full">
+          <span>رمز GitHub</span>
+          <div class="token-input-wrap">
+            <input id="github-token" type="password" autocomplete="off" spellcheck="false" required />
+            <button id="toggle-token" class="icon-button" type="button" aria-label="إظهار الرمز">
+              <i data-lucide="eye" aria-hidden="true"></i>
+            </button>
+          </div>
+        </label>
+
+        <label class="session-option">
+          <input id="remember-token" type="checkbox" checked />
+          <span>حفظ الاتصال على هذا الجهاز الشخصي للنشر مباشرة</span>
+        </label>
+
+        <a
+          class="token-link"
+          href="https://github.com/settings/personal-access-tokens/new"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          إنشاء رمز محدود
+          <i data-lucide="external-link" aria-hidden="true"></i>
+        </a>
+
+        <div id="github-error" class="dialog-error" role="alert" hidden></div>
+
+        <div class="dialog-actions">
+          <button id="disconnect-github" class="button button-danger" type="button" hidden>
+            <i data-lucide="unplug" aria-hidden="true"></i>
+            <span>فصل الاتصال</span>
+          </button>
+          <button id="cancel-github" class="button button-ghost" type="button">إلغاء</button>
+          <button id="confirm-github" class="button button-primary" type="submit">
+            <i data-lucide="plug" aria-hidden="true"></i>
+            <span>اتصال</span>
+          </button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="delete-dialog" class="admin-dialog admin-dialog-small">
+      <div class="delete-dialog-content">
+        <span class="danger-icon"><i data-lucide="trash-2" aria-hidden="true"></i></span>
+        <h2>حذف البروفايل؟</h2>
+        <p id="delete-profile-name"></p>
+        <div class="dialog-actions dialog-actions-centered">
+          <button id="cancel-delete" class="button button-ghost" type="button">إلغاء</button>
+          <button id="confirm-delete" class="button button-danger" type="button">حذف</button>
+        </div>
+      </div>
+    </dialog>
+
+    <dialog id="categories-dialog" class="admin-dialog categories-dialog">
+      <form id="categories-form" method="dialog">
+        <div class="dialog-heading">
+          <div>
+            <h2>إدارة الأقسام والألوان</h2>
+            <p>رتب الأقسام وأضف قسمًا جديدًا وحدد ألوان ظهوره في الموقع.</p>
+          </div>
+          <button id="close-categories-dialog" class="icon-button" type="button" aria-label="إغلاق">
+            <i data-lucide="x" aria-hidden="true"></i>
+          </button>
+        </div>
+
+        <div id="categories-list" class="categories-editor-list"></div>
+
+        <button id="add-category" class="button button-add" type="button">
+          <i data-lucide="plus" aria-hidden="true"></i>
+          <span>إضافة قسم</span>
+        </button>
+
+        <div id="categories-error" class="dialog-error" role="alert" hidden></div>
+
+        <div class="dialog-actions">
+          <button id="cancel-categories" class="button button-ghost" type="button">إلغاء</button>
+          <button class="button button-primary" type="submit">
+            <i data-lucide="save" aria-hidden="true"></i>
+            <span>حفظ الأقسام</span>
+          </button>
+        </div>
+      </form>
+    </dialog>
+
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+    <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
+    <script src="cast-categories.js?v=20260808-7"></script>
+    <script src="cast-admin-auth.js?v=20260808-141935"></script>
+    <script src="cast-admin.js?v=20260824-1"></script>
+  </body>
+</html>
