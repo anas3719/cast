@@ -202,6 +202,10 @@
     return {
       salt: String(source.salt || "9e7ad6d78407c3c2a8bbf5c473a176f4"),
       passwordHash: String(source.passwordHash || ""),
+      tokenSalt: String(source.tokenSalt || ""),
+      tokenIv: String(source.tokenIv || ""),
+      encryptedGithubToken: String(source.encryptedGithubToken || ""),
+      tokenIterations: Number(source.tokenIterations) || 600000,
     };
   }
 
@@ -870,7 +874,7 @@
   }
 
   function serializeAdminAuth(value) {
-    return `window.castAdminAuth = {\n  salt: ${JSON.stringify(value.salt)},\n  passwordHash: ${JSON.stringify(value.passwordHash)},\n};\n`;
+    return `window.castAdminAuth = {\n  salt: ${JSON.stringify(value.salt)},\n  passwordHash: ${JSON.stringify(value.passwordHash)},\n  tokenSalt: ${JSON.stringify(value.tokenSalt)},\n  tokenIv: ${JSON.stringify(value.tokenIv)},\n  encryptedGithubToken: ${JSON.stringify(value.encryptedGithubToken)},\n  tokenIterations: ${JSON.stringify(value.tokenIterations)},\n};\n`;
   }
 
   function updateCategoryPreview(row, category) {
@@ -1161,8 +1165,9 @@
   }
 
   async function fetchGithubRaw(path) {
-    const response = await fetch(
-      `https://api.github.com/repos/${repository.owner}/${repository.name}/contents/${path}?ref=${repository.branch}`,
+    const url = `https://api.github.com/repos/${repository.owner}/${repository.name}/contents/${path}?ref=${repository.branch}`;
+    let response = await fetch(
+      url,
       {
         cache: "no-store",
         headers: {
@@ -1172,6 +1177,19 @@
         },
       },
     );
+
+    if (!response.ok && githubToken && (response.status === 401 || response.status === 403)) {
+      githubToken = "";
+      clearStoredGithubToken();
+      updateConnectionButton();
+      response = await fetch(url, {
+        cache: "no-store",
+        headers: {
+          Accept: "application/vnd.github.raw+json",
+          "X-GitHub-Api-Version": "2022-11-28",
+        },
+      });
+    }
 
     if (!response.ok) {
       if (response.status === 401 || response.status === 403) {
@@ -1190,15 +1208,85 @@
   }
 
   function isAdminUnlocked() {
-    return !authConfig.passwordHash || readStoredAdminUnlock() === authConfig.passwordHash;
+    const passwordAccepted = !authConfig.passwordHash || readStoredAdminUnlock() === authConfig.passwordHash;
+    const publishingReady = !authConfig.encryptedGithubToken || Boolean(githubToken);
+    return passwordAccepted && publishingReady;
   }
 
-  async function hashAdminPassword(password) {
-    const bytes = new TextEncoder().encode(`${authConfig.salt}:${password}`);
+  async function hashAdminPassword(password, salt = authConfig.salt) {
+    const bytes = new TextEncoder().encode(`${salt}:${password}`);
     const digest = await window.crypto.subtle.digest("SHA-256", bytes);
     return [...new Uint8Array(digest)]
       .map((byte) => byte.toString(16).padStart(2, "0"))
       .join("");
+  }
+
+  function decodeBase64(value) {
+    const binary = window.atob(value);
+    return Uint8Array.from(binary, (character) => character.charCodeAt(0));
+  }
+
+  function encodeBase64(bytes) {
+    let binary = "";
+    bytes.forEach((byte) => { binary += String.fromCharCode(byte); });
+    return window.btoa(binary);
+  }
+
+  function randomHex(byteLength) {
+    return [...window.crypto.getRandomValues(new Uint8Array(byteLength))]
+      .map((byte) => byte.toString(16).padStart(2, "0"))
+      .join("");
+  }
+
+  async function deriveTokenEncryptionKey(password, salt, iterations) {
+    const material = await window.crypto.subtle.importKey(
+      "raw",
+      new TextEncoder().encode(password),
+      "PBKDF2",
+      false,
+      ["deriveKey"],
+    );
+    return window.crypto.subtle.deriveKey(
+      { name: "PBKDF2", salt, iterations, hash: "SHA-256" },
+      material,
+      { name: "AES-GCM", length: 256 },
+      false,
+      ["encrypt", "decrypt"],
+    );
+  }
+
+  async function decryptBundledGithubToken(password) {
+    if (!authConfig.encryptedGithubToken) return "";
+    const salt = decodeBase64(authConfig.tokenSalt);
+    const iv = decodeBase64(authConfig.tokenIv);
+    const key = await deriveTokenEncryptionKey(password, salt, authConfig.tokenIterations);
+    const decrypted = await window.crypto.subtle.decrypt(
+      { name: "AES-GCM", iv },
+      key,
+      decodeBase64(authConfig.encryptedGithubToken),
+    );
+    return new TextDecoder().decode(decrypted);
+  }
+
+  async function createEncryptedAuthConfig(password, token) {
+    const salt = window.crypto.getRandomValues(new Uint8Array(16));
+    const iv = window.crypto.getRandomValues(new Uint8Array(12));
+    const iterations = 600000;
+    const key = await deriveTokenEncryptionKey(password, salt, iterations);
+    const encrypted = await window.crypto.subtle.encrypt(
+      { name: "AES-GCM", iv },
+      key,
+      new TextEncoder().encode(token),
+    );
+    const passwordSalt = randomHex(16);
+    return {
+      salt: passwordSalt,
+      passwordHash: await hashAdminPassword(password, passwordSalt),
+      tokenSalt: encodeBase64(salt),
+      tokenIv: encodeBase64(iv),
+      encryptedGithubToken: encodeBase64(new Uint8Array(encrypted)),
+      tokenIterations: iterations,
+    };
   }
 
   function showAdminLock() {
@@ -1222,6 +1310,11 @@
       if (passwordHash !== authConfig.passwordHash) {
         throw new Error("كلمة المرور غير صحيحة");
       }
+      if (authConfig.encryptedGithubToken) {
+        githubToken = await decryptBundledGithubToken(password);
+        storeGithubToken(githubToken, true);
+        updateConnectionButton();
+      }
       storeAdminUnlock(passwordHash, elements.rememberAdminDevice.checked);
       document.body.classList.remove("is-admin-locked");
       elements.adminLockDialog.close();
@@ -1240,7 +1333,7 @@
     elements.securityError.textContent = "";
     elements.newAdminPassword.value = "";
     elements.confirmAdminPassword.value = "";
-    elements.removeAdminPassword.hidden = !authConfig.passwordHash;
+    elements.removeAdminPassword.hidden = Boolean(authConfig.encryptedGithubToken) || !authConfig.passwordHash;
     elements.securityDialog.showModal();
     elements.newAdminPassword.focus();
   }
@@ -1262,7 +1355,14 @@
       return;
     }
 
-    authConfig.passwordHash = await hashAdminPassword(password);
+    if (authConfig.encryptedGithubToken && !githubToken) {
+      elements.securityError.textContent = "أعد فتح اللوحة بكلمة المرور أولاً";
+      elements.securityError.hidden = false;
+      return;
+    }
+    authConfig = authConfig.encryptedGithubToken
+      ? await createEncryptedAuthConfig(password, githubToken)
+      : { ...authConfig, passwordHash: await hashAdminPassword(password) };
     storeAdminUnlock(authConfig.passwordHash, true);
     elements.securityDialog.close();
     elements.newAdminPassword.value = "";
@@ -1272,6 +1372,7 @@
   }
 
   async function removeAdminPassword() {
+    if (authConfig.encryptedGithubToken) return;
     authConfig.passwordHash = "";
     clearStoredAdminUnlock();
     elements.securityDialog.close();
@@ -1465,8 +1566,8 @@
     }
     if (!dataDirty) return;
     if (!githubToken) {
-      setSyncStatus("اتصال GitHub غير محفوظ", "error");
-      showToast("اضغط اتصال GitHub لحفظ الاتصال على هذا الجهاز", "error");
+      setSyncStatus("أدخل كلمة مرور لوحة الإدارة", "error");
+      showAdminLock();
       return;
     }
 
