@@ -560,7 +560,7 @@
         const relatedCategory = event.related?.dataset.categoryKey;
         return !relatedCategory || draggedCategory === relatedCategory;
       },
-      onEnd: (event) => {
+      onEnd: async (event) => {
         if (event.oldIndex === event.newIndex) return;
 
         const rows = [...elements.profilesList.children].filter((row) => row.dataset.profileId);
@@ -579,9 +579,9 @@
               if (member) member.displayOrder = index + 1;
             });
         });
-        markDataDirty("تم حفظ الترتيب كمسودة");
+        markDataDirty("جاري نشر الترتيب");
         renderProfiles();
-        showToast("تم ترتيب البروفايلات. اضغط نشر التغييرات", "success");
+        await publishChanges();
       },
     });
   }
@@ -756,7 +756,7 @@
     setSyncStatus(message, "dirty");
   }
 
-  function saveProfile(event) {
+  async function saveProfile(event) {
     event.preventDefault();
     const previousProfile = selectedId ? members.find((member) => member.id === selectedId) : null;
     const profile = readFormValues(true);
@@ -793,9 +793,9 @@
     elements.editorTitle.textContent = profile.name;
     elements.deleteProfile.hidden = false;
     fillForm(profile);
-    markDataDirty("تم حفظ البروفايل كمسودة");
+    markDataDirty("جاري نشر البروفايل");
     renderProfiles();
-    showToast("تم حفظ البروفايل. اضغط نشر التغييرات", "success");
+    await publishChanges();
   }
 
   function requestDelete() {
@@ -805,7 +805,7 @@
     elements.deleteDialog.showModal();
   }
 
-  function confirmDelete() {
+  async function confirmDelete() {
     const member = members.find((item) => item.id === selectedId);
     if (!member) return;
     members = members.filter((item) => item.id !== selectedId);
@@ -813,9 +813,9 @@
     formDirty = false;
     elements.deleteDialog.close();
     showEmptyEditor();
-    markDataDirty(`تم حذف ${member.name} من المسودة`);
+    markDataDirty(`جاري نشر حذف ${member.name}`);
     renderProfiles();
-    showToast("تم حذف البروفايل من المسودة", "success");
+    await publishChanges();
   }
 
   function serializeValue(value) {
@@ -1089,7 +1089,7 @@
     elements.categoriesList.lastElementChild?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
 
-  function saveCategorySettings(event) {
+  async function saveCategorySettings(event) {
     event.preventDefault();
     const labels = categoryDraft.map((category) => category.label.trim());
     if (labels.some((label) => !label)) {
@@ -1112,8 +1112,8 @@
     if (selectedId) fillForm(members.find((member) => member.id === selectedId) || {});
     renderProfiles();
     elements.categoriesDialog.close();
-    markDataDirty("تم حفظ الأقسام كمسودة");
-    showToast("تم حفظ الأقسام والألوان. اضغط نشر التغييرات", "success");
+    markDataDirty("جاري نشر الأقسام والألوان");
+    await publishChanges();
   }
 
   function encodeBase64Utf8(value) {
@@ -1267,16 +1267,16 @@
     elements.securityDialog.close();
     elements.newAdminPassword.value = "";
     elements.confirmAdminPassword.value = "";
-    markDataDirty("تم حفظ حماية اللوحة كمسودة");
-    showToast("تم حفظ كلمة المرور. اضغط نشر التغييرات لتفعيلها على الأجهزة الأخرى", "success");
+    markDataDirty("جاري نشر حماية اللوحة");
+    await publishChanges();
   }
 
-  function removeAdminPassword() {
+  async function removeAdminPassword() {
     authConfig.passwordHash = "";
     clearStoredAdminUnlock();
     elements.securityDialog.close();
-    markDataDirty("تمت إزالة حماية اللوحة كمسودة");
-    showToast("اضغط نشر التغييرات لإزالة كلمة المرور", "success");
+    markDataDirty("جاري نشر إزالة حماية اللوحة");
+    await publishChanges();
   }
 
   async function loadData() {
@@ -1465,7 +1465,8 @@
     }
     if (!dataDirty) return;
     if (!githubToken) {
-      openGithubDialog(true);
+      setSyncStatus("اتصال GitHub غير محفوظ", "error");
+      showToast("اضغط اتصال GitHub لحفظ الاتصال على هذا الجهاز", "error");
       return;
     }
 
