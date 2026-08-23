@@ -1036,8 +1036,9 @@ window.castMembers = [
     age: "28",
     height: "170",
     weight: "60",
-    nationality: "",
-    speaking: "",
+    nationality: "يمني",
+    speaking: "متحدث",
+    completedOrder: 31,
     note: "",
   },
   {
