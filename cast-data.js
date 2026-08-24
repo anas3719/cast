@@ -1070,5 +1070,13 @@ window.castMembers = [
     speaking: "متحدث",
     completedOrder: 29,
     note: "",
+  },
+  {
+    id: "wafaa-alsaleh-makeup",
+    name: "وفاء الصالح",
+    category: "makeup-artists",
+    folderUrl: "https://drive.google.com/drive/folders/104sR8ZSD0BLPsckepVTqsdGcHdHh283-",
+    photoUrl: "https://drive.google.com/thumbnail?id=1VOsF1lz6JZmYGsJFzaj1q78F9LxwlGlT&sz=w1000",
+    imageTitle: "IMG_4501.JPG",
   }
 ];
