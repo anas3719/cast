@@ -371,14 +371,9 @@
   }
 
   function getAlwaysFirstOrder(member) {
+    if (member.category === "men" && member.id === "anas-omar") return 1;
     if (member.category === "women" && member.id === "walaa") return 1;
-    if (member.category === "women" && member.id === "lara") return 2;
-    if (member.category === "women" && member.id === "raghd") return 3;
     return Number.MAX_SAFE_INTEGER;
-  }
-
-  function getAlwaysLastOrder(member) {
-    return member.category === "women" && member.id === "modhi-abdullah" ? 1 : 0;
   }
 
   function getNumericOrder(value, fallback) {
@@ -401,6 +396,10 @@
           - (categoryOrder.get(second.member.category) ?? Number.MAX_SAFE_INTEGER);
         if (categoryDifference) return categoryDifference;
 
+        const firstAlways = getAlwaysFirstOrder(first.member);
+        const secondAlways = getAlwaysFirstOrder(second.member);
+        if (firstAlways !== secondAlways) return firstAlways - secondAlways;
+
         if (manualCategories.has(first.member.category)) {
           const firstOrder = hasNumericOrder(first.member.displayOrder)
             ? Number(first.member.displayOrder)
@@ -410,33 +409,7 @@
             : Number.MAX_SAFE_INTEGER + second.index;
           return firstOrder - secondOrder || first.index - second.index;
         }
-
-        const firstAlways = getAlwaysFirstOrder(first.member);
-        const secondAlways = getAlwaysFirstOrder(second.member);
-        if (firstAlways !== secondAlways) return firstAlways - secondAlways;
-
-        const lastDifference = getAlwaysLastOrder(first.member) - getAlwaysLastOrder(second.member);
-        if (lastDifference) return lastDifference;
-
-        const completionDifference = Number(isComplete(second.member)) - Number(isComplete(first.member));
-        if (completionDifference) return completionDifference;
-
-        const pinnedDifference = getNumericOrder(first.member.pinnedOrder, Number.MAX_SAFE_INTEGER)
-          - getNumericOrder(second.member.pinnedOrder, Number.MAX_SAFE_INTEGER);
-        if (pinnedDifference) return pinnedDifference;
-
-        if (isComplete(first.member) && isComplete(second.member)) {
-          const completionOrderDifference = getNumericOrder(
-            first.member.completedOrder,
-            Number.MAX_SAFE_INTEGER + first.index,
-          ) - getNumericOrder(
-            second.member.completedOrder,
-            Number.MAX_SAFE_INTEGER + second.index,
-          );
-          if (completionOrderDifference) return completionOrderDifference;
-        }
-
-        return first.index - second.index;
+        return second.index - first.index;
       })
       .map(({ member }) => member);
   }
@@ -747,11 +720,13 @@
     return members.some((member) => member.category === categoryKey && hasNumericOrder(member.displayOrder));
   }
 
-  function getNextDisplayOrder(categoryKey) {
-    return members.reduce((highest, member) => {
-      if (member.category !== categoryKey || !hasNumericOrder(member.displayOrder)) return highest;
-      return Math.max(highest, Number(member.displayOrder));
-    }, 0) + 1;
+  function createFrontDisplayOrder(categoryKey) {
+    members.forEach((member) => {
+      if (member.category === categoryKey && hasNumericOrder(member.displayOrder)) {
+        member.displayOrder = Number(member.displayOrder) + 1;
+      }
+    });
+    return 1;
   }
 
   function validateProfile(profile) {
@@ -797,7 +772,7 @@
         profile.completedOrder = getNextCompletionOrder();
       }
       if (categoryUsesManualOrder(profile.category)) {
-        profile.displayOrder = getNextDisplayOrder(profile.category);
+        profile.displayOrder = createFrontDisplayOrder(profile.category);
       }
       members.push(profile);
       selectedId = profile.id;
@@ -811,7 +786,7 @@
       if (previousProfile && previousProfile.category !== profile.category) {
         delete profile.displayOrder;
         if (categoryUsesManualOrder(profile.category)) {
-          profile.displayOrder = getNextDisplayOrder(profile.category);
+          profile.displayOrder = createFrontDisplayOrder(profile.category);
         }
       }
       members[index] = profile;

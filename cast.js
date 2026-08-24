@@ -192,36 +192,10 @@ function getDisplayValue(value, emptyValue = missingValue) {
   return value && String(value).trim() ? value : emptyValue;
 }
 
-function hasCompleteDetails(member) {
-  const category = categoryByKey.get(member.category);
-  if (category?.profileType === "simple") {
-    return ["name", "folderUrl", "photoUrl"].every((key) => String(member[key] || "").trim());
-  }
-  const requiredKeys = ["boys", "girls"].includes(member.category)
-    ? ["age", "height", "weight", "nationality"]
-    : ["age", "height", "weight", "nationality", "speaking"];
-  return requiredKeys.every((key) => String(member[key] || "").trim());
-}
-
-function getCompletionOrder(member, originalIndex) {
-  return hasNumericOrder(member.completedOrder)
-    ? Number(member.completedOrder)
-    : Number.MAX_SAFE_INTEGER + originalIndex;
-}
-
-function getPinnedOrder(member) {
-  return hasNumericOrder(member.pinnedOrder) ? Number(member.pinnedOrder) : Number.MAX_SAFE_INTEGER;
-}
-
 function getAlwaysFirstOrder(member) {
+  if (member.category === "men" && member.id === "anas-omar") return 1;
   if (member.category === "women" && member.id === "walaa") return 1;
-  if (member.category === "women" && member.id === "lara") return 2;
-  if (member.category === "women" && member.id === "raghd") return 3;
   return Number.MAX_SAFE_INTEGER;
-}
-
-function getAlwaysLastOrder(member) {
-  return member.category === "women" && member.id === "modhi-abdullah" ? 1 : 0;
 }
 
 function getMembersByCategory(categoryKey) {
@@ -232,6 +206,10 @@ function getMembersByCategory(categoryKey) {
 
   return indexedMembers
     .sort((first, second) => {
+      const firstAlways = getAlwaysFirstOrder(first.member);
+      const secondAlways = getAlwaysFirstOrder(second.member);
+      if (firstAlways !== secondAlways) return firstAlways - secondAlways;
+
       if (usesManualOrder) {
         const firstOrder = hasNumericOrder(first.member.displayOrder)
           ? Number(first.member.displayOrder)
@@ -241,26 +219,7 @@ function getMembersByCategory(categoryKey) {
           : Number.MAX_SAFE_INTEGER + second.index;
         return firstOrder - secondOrder || first.index - second.index;
       }
-
-      const firstAlways = getAlwaysFirstOrder(first.member);
-      const secondAlways = getAlwaysFirstOrder(second.member);
-      if (firstAlways !== secondAlways) return firstAlways - secondAlways;
-
-      const lastDifference = getAlwaysLastOrder(first.member) - getAlwaysLastOrder(second.member);
-      if (lastDifference) return lastDifference;
-
-      const firstComplete = hasCompleteDetails(first.member);
-      const secondComplete = hasCompleteDetails(second.member);
-      if (firstComplete !== secondComplete) return firstComplete ? -1 : 1;
-
-      const pinnedDifference = getPinnedOrder(first.member) - getPinnedOrder(second.member);
-      if (pinnedDifference) return pinnedDifference;
-
-      if (firstComplete && secondComplete) {
-        return getCompletionOrder(first.member, first.index) - getCompletionOrder(second.member, second.index)
-          || first.index - second.index;
-      }
-      return first.index - second.index;
+      return second.index - first.index;
     })
     .map(({ member }) => member);
 }

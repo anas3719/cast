@@ -5,16 +5,20 @@ const photographerCategory = photographerCategories.find((category) => category.
   href: "photographers.html",
   colors: { start: "#4a3820", end: "#251326", border: "#ffce60", text: "#fff8e8" },
 };
-const photographers = (Array.isArray(window.photographers) ? window.photographers : [])
+const photographerSource = Array.isArray(window.photographers) ? window.photographers : [];
+const photographersUseManualOrder = photographerSource.some((photographer) =>
+  hasPhotographerOrder(photographer.displayOrder));
+const photographers = photographerSource
   .map((photographer, index) => ({ photographer, index }))
   .sort((first, second) => {
+    if (!photographersUseManualOrder) return second.index - first.index;
     const firstOrder = hasPhotographerOrder(first.photographer.displayOrder)
       ? Number(first.photographer.displayOrder)
       : Number.MAX_SAFE_INTEGER + first.index;
     const secondOrder = hasPhotographerOrder(second.photographer.displayOrder)
       ? Number(second.photographer.displayOrder)
       : Number.MAX_SAFE_INTEGER + second.index;
-    return firstOrder - secondOrder || first.index - second.index;
+    return firstOrder - secondOrder || second.index - first.index;
   })
   .map(({ photographer }) => photographer);
 const photographersGrid = document.querySelector("#photographersGrid");
