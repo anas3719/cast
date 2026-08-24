@@ -18,19 +18,20 @@ const selectionStorageKey = "anas-cast-selection-v1";
 function applyHomeSettings() {
   if (!isCastHomePage) return;
   const title = String(siteSettings.heroTitle || "الكاست والمصورين").trim();
+  const displayTitle = title.replace(/\s*\\+\s*/g, " • ");
   const description = String(
     siteSettings.heroDescription
       || "اختر الكاست المناسب من الأقسام أو تصفح المصورين، وافتح ملف الدرايف لكل شخص لمشاهدة أعماله وصوره، ثم أرسل الاختيارات مباشرة على واتساب.",
   ).trim();
   const heading = document.querySelector(".cast-home-hero h1");
   const lead = document.querySelector(".cast-home-hero .lead");
-  if (heading) heading.textContent = title;
+  if (heading) heading.textContent = displayTitle;
   if (lead) lead.textContent = description;
-  document.title = title;
+  document.title = displayTitle;
   document.querySelectorAll('meta[name="description"], meta[property="og:description"], meta[name="twitter:description"]')
     .forEach((meta) => meta.setAttribute("content", description));
   document.querySelectorAll('meta[property="og:title"], meta[name="twitter:title"]')
-    .forEach((meta) => meta.setAttribute("content", title));
+    .forEach((meta) => meta.setAttribute("content", displayTitle));
 }
 
 const fallbackCategories = [

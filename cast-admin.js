@@ -1547,6 +1547,26 @@
     );
   }
 
+  function escapeHtmlAttribute(value) {
+    return String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/"/g, "&quot;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
+  function updateHomeMetadata(html) {
+    const title = escapeHtmlAttribute(siteSettings.heroTitle.replace(/\s*\\+\s*/g, " • "));
+    const description = escapeHtmlAttribute(siteSettings.heroDescription);
+    return html
+      .replace(/<title>[^<]*<\/title>/, `<title>${title}</title>`)
+      .replace(/(<meta\s+name="description"\s+content=")[^"]*("\s*\/?>)/, `$1${description}$2`)
+      .replace(/(<meta\s+property="og:title"\s+content=")[^"]*("\s*\/?>)/, `$1${title}$2`)
+      .replace(/(<meta\s+property="og:description"\s+content=")[^"]*("\s*\/?>)/, `$1${description}$2`)
+      .replace(/(<meta\s+name="twitter:title"\s+content=")[^"]*("\s*\/?>)/, `$1${title}$2`)
+      .replace(/(<meta\s+name="twitter:description"\s+content=")[^"]*("\s*\/?>)/, `$1${description}$2`);
+  }
+
   async function createBlob(content) {
     return githubRequest(
       `/repos/${repository.owner}/${repository.name}/git/blobs`,
@@ -1654,10 +1674,15 @@
       );
 
       const htmlSources = await Promise.all(
-        castPagePaths.map(async (path) => ({
-          path,
-          content: updateAssetVersion(await fetchGithubRaw(path), version),
-        })),
+        castPagePaths.map(async (path) => {
+          const versionedHtml = updateAssetVersion(await fetchGithubRaw(path), version);
+          return {
+            path,
+            content: ["index.html", "cast.html"].includes(path)
+              ? updateHomeMetadata(versionedHtml)
+              : versionedHtml,
+          };
+        }),
       );
       const photographerHtmlSources = await Promise.all(
         photographerPagePaths.map(async (path) => ({
