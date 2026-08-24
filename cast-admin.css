@@ -1143,6 +1143,11 @@ body.is-busy textarea {
     width: 100%;
   }
 
+  .directory-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
   .directory-heading .button {
     padding: 0 12px;
   }
