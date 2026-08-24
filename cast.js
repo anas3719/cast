@@ -20,6 +20,8 @@ const fallbackCategories = [
   { key: "seniorMen", label: "كبار سن رجال", group: "كبار سن", href: "cast-senior-men.html", source: "cast", profileType: "full", selectable: true },
   { key: "seniorWomen", label: "كبار سن سيدات", group: "كبار سن", href: "cast-senior-women.html", source: "cast", profileType: "full", selectable: true },
   { key: "photographers", label: "المصورين", group: "المصورين", href: "photographers.html", source: "photographers", profileType: "simple", selectable: false },
+  { key: "section-mska721r", label: "فويس أوفر", group: "فويس أوفر", href: "cast-category.html?category=section-mska721r", source: "cast", profileType: "simple", selectable: true },
+  { key: "makeup-artists", label: "ميكب ارتست", group: "ميكب ارتست", href: "cast-category.html?category=makeup-artists", source: "cast", profileType: "simple", selectable: true },
 ];
 
 const defaultColors = {

@@ -78,5 +78,15 @@ window.castCategories = [
     profileType: "simple",
     selectable: true,
     colors: {"start":"#4a3820","end":"#251326","border":"#ffce60","text":"#fff8e8"},
+  },
+  {
+    key: "makeup-artists",
+    label: "ميكب ارتست",
+    group: "ميكب ارتست",
+    href: "cast-category.html?category=makeup-artists",
+    source: "cast",
+    profileType: "simple",
+    selectable: true,
+    colors: {"start":"#4a3820","end":"#251326","border":"#ffce60","text":"#fff8e8"},
   }
 ];
