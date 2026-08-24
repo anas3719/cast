@@ -1,5 +1,8 @@
 const castMembers = Array.isArray(window.castMembers) ? window.castMembers : [];
 const photographers = Array.isArray(window.photographers) ? window.photographers : [];
+const siteSettings = window.castSiteSettings && typeof window.castSiteSettings === "object"
+  ? window.castSiteSettings
+  : {};
 const castSections = document.querySelector("#castSections");
 const castQuickLinks = document.querySelector("#castQuickLinks");
 const castCategoryCards = document.querySelector("#castCategoryCards");
@@ -11,6 +14,24 @@ const missingValue = "يضاف لاحقًا";
 const isCastHomePage = document.body.classList.contains("cast-home-page");
 const memberById = new Map(castMembers.map((member) => [member.id, member]));
 const selectionStorageKey = "anas-cast-selection-v1";
+
+function applyHomeSettings() {
+  if (!isCastHomePage) return;
+  const title = String(siteSettings.heroTitle || "الكاست والمصورين").trim();
+  const description = String(
+    siteSettings.heroDescription
+      || "اختر الكاست المناسب من الأقسام أو تصفح المصورين، وافتح ملف الدرايف لكل شخص لمشاهدة أعماله وصوره، ثم أرسل الاختيارات مباشرة على واتساب.",
+  ).trim();
+  const heading = document.querySelector(".cast-home-hero h1");
+  const lead = document.querySelector(".cast-home-hero .lead");
+  if (heading) heading.textContent = title;
+  if (lead) lead.textContent = description;
+  document.title = title;
+  document.querySelectorAll('meta[name="description"], meta[property="og:description"], meta[name="twitter:description"]')
+    .forEach((meta) => meta.setAttribute("content", description));
+  document.querySelectorAll('meta[property="og:title"], meta[name="twitter:title"]')
+    .forEach((meta) => meta.setAttribute("content", title));
+}
 
 const fallbackCategories = [
   { key: "men", label: "شباب", group: "شباب", href: "cast-men.html", source: "cast", profileType: "full", selectable: true },
@@ -632,6 +653,7 @@ window.addEventListener("storage", (event) => {
   updateRequestSummary();
 });
 
+applyHomeSettings();
 renderSiteNavigation();
 applyActiveCategory();
 renderOverview();

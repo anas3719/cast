@@ -11,6 +11,7 @@
   const adminUnlockStorageKey = "cast-admin-unlocked-hash";
 
   const castPagePaths = [
+    "index.html",
     "cast.html",
     "cast-category.html",
     "cast-men.html",
@@ -22,6 +23,11 @@
   ];
 
   const photographerPagePaths = ["photographers.html"];
+
+  const defaultSiteSettings = {
+    heroTitle: "الكاست والمصورين",
+    heroDescription: "اختر الكاست المناسب من الأقسام أو تصفح المصورين، وافتح ملف الدرايف لكل شخص لمشاهدة أعماله وصوره، ثم أرسل الاختيارات مباشرة على واتساب.",
+  };
 
   const defaultCategoryColors = {
     start: "#17313a",
@@ -76,6 +82,7 @@
 
   const elements = {
     syncStatus: document.querySelector("#sync-status"),
+    heroSettings: document.querySelector("#hero-settings"),
     reloadData: document.querySelector("#reload-data"),
     securitySettings: document.querySelector("#security-settings"),
     githubConnect: document.querySelector("#github-connect"),
@@ -143,6 +150,13 @@
     addCategory: document.querySelector("#add-category"),
     closeCategoriesDialog: document.querySelector("#close-categories-dialog"),
     cancelCategories: document.querySelector("#cancel-categories"),
+    heroDialog: document.querySelector("#hero-dialog"),
+    heroForm: document.querySelector("#hero-form"),
+    heroTitle: document.querySelector("#hero-title"),
+    heroDescription: document.querySelector("#hero-description"),
+    heroError: document.querySelector("#hero-error"),
+    closeHeroDialog: document.querySelector("#close-hero-dialog"),
+    cancelHero: document.querySelector("#cancel-hero"),
     toast: document.querySelector("#toast"),
   };
 
@@ -157,6 +171,16 @@
   let basePhotographersSource = "";
   let baseCategoriesSource = "";
   let baseAuthSource = "";
+  let baseSiteSettingsSource = "";
+  let siteSettings = normalizeSiteSettings(window.castSiteSettings);
+
+  function normalizeSiteSettings(value) {
+    const source = value && typeof value === "object" ? value : {};
+    return {
+      heroTitle: String(source.heroTitle || defaultSiteSettings.heroTitle).trim(),
+      heroDescription: String(source.heroDescription || defaultSiteSettings.heroDescription).trim(),
+    };
+  }
   function loadStoredGithubToken() {
     try {
       const persistentToken = localStorage.getItem(githubTokenStorageKey);
@@ -877,6 +901,40 @@
     return `window.castAdminAuth = {\n  salt: ${JSON.stringify(value.salt)},\n  passwordHash: ${JSON.stringify(value.passwordHash)},\n  tokenSalt: ${JSON.stringify(value.tokenSalt)},\n  tokenIv: ${JSON.stringify(value.tokenIv)},\n  encryptedGithubToken: ${JSON.stringify(value.encryptedGithubToken)},\n  tokenIterations: ${JSON.stringify(value.tokenIterations)},\n};\n`;
   }
 
+  function serializeSiteSettings(value) {
+    return `window.castSiteSettings = {\n  heroTitle: ${JSON.stringify(value.heroTitle)},\n  heroDescription: ${JSON.stringify(value.heroDescription)},\n};\n`;
+  }
+
+  function openHeroSettings() {
+    elements.heroError.hidden = true;
+    elements.heroError.textContent = "";
+    elements.heroTitle.value = siteSettings.heroTitle;
+    elements.heroDescription.value = siteSettings.heroDescription;
+    elements.heroDialog.showModal();
+    elements.heroTitle.focus();
+  }
+
+  async function saveHeroSettings(event) {
+    event.preventDefault();
+    elements.heroError.hidden = true;
+    const heroTitle = elements.heroTitle.value.trim();
+    const heroDescription = elements.heroDescription.value.trim();
+    if (!heroTitle || !heroDescription) {
+      elements.heroError.textContent = "اكتب العنوان والنص الموجود تحته";
+      elements.heroError.hidden = false;
+      return;
+    }
+    if (formDirty) {
+      elements.heroError.textContent = "احفظ تعديل البروفايل أو ألغِه أولاً";
+      elements.heroError.hidden = false;
+      return;
+    }
+    siteSettings = { heroTitle, heroDescription };
+    elements.heroDialog.close();
+    markDataDirty("جاري نشر نص الهيرو");
+    await publishChanges();
+  }
+
   function updateCategoryPreview(row, category) {
     const preview = row.querySelector(".category-preview");
     preview.textContent = category.label || "قسم جديد";
@@ -1388,7 +1446,7 @@
     setBusy(true);
     setSyncStatus("جاري تحميل البيانات");
     try {
-      [baseDataSource, basePhotographersSource, baseCategoriesSource, baseAuthSource] = await Promise.all([
+      [baseDataSource, basePhotographersSource, baseCategoriesSource, baseAuthSource, baseSiteSettingsSource] = await Promise.all([
         fetchGithubRaw("cast-data.js"),
         fetchGithubRaw("photographers-data.js"),
         fetchGithubRaw("cast-categories.js").catch((error) => {
@@ -1398,11 +1456,13 @@
           throw error;
         }),
         fetchGithubRaw("cast-admin-auth.js").catch(() => serializeAdminAuth(authConfig)),
+        fetchGithubRaw("cast-site-settings.js").catch(() => serializeSiteSettings(defaultSiteSettings)),
       ]);
       await loadSourceIntoWindow(baseDataSource);
       await loadSourceIntoWindow(basePhotographersSource);
       await loadSourceIntoWindow(baseCategoriesSource);
       await loadSourceIntoWindow(baseAuthSource);
+      await loadSourceIntoWindow(baseSiteSettingsSource);
       if (
         !Array.isArray(window.castMembers)
         || !Array.isArray(window.photographers)
@@ -1411,6 +1471,7 @@
         throw new Error("ملفات بيانات البروفايلات غير صالحة");
       }
       authConfig = normalizeAdminAuth(window.castAdminAuth);
+      siteSettings = normalizeSiteSettings(window.castSiteSettings);
       if (!isAdminUnlocked()) {
         showAdminLock();
         return;
@@ -1506,7 +1567,7 @@
 
   function updateAssetVersion(html, version) {
     return html.replace(
-      /(cast-styles\.css|cast-categories\.js|cast-data\.js|photographers-data\.js|cast\.js)\?v=[^"']+/g,
+      /(cast-styles\.css|cast-site-settings\.js|cast-categories\.js|cast-data\.js|photographers-data\.js|cast\.js)\?v=[^"']+/g,
       `$1?v=${version}`,
     );
   }
@@ -1527,27 +1588,31 @@
     expectedPhotographersSource,
     expectedCategoriesSource,
     expectedAuthSource,
+    expectedSiteSettingsSource,
     commitSha,
   ) {
     for (let attempt = 0; attempt < 30; attempt += 1) {
       try {
-        const [castResponse, photographersResponse, categoriesResponse, authResponse] = await Promise.all([
+        const [castResponse, photographersResponse, categoriesResponse, authResponse, siteSettingsResponse] = await Promise.all([
           fetch(`cast-data.js?admin=${commitSha}-${attempt}`, { cache: "no-store" }),
           fetch(`photographers-data.js?admin=${commitSha}-${attempt}`, { cache: "no-store" }),
           fetch(`cast-categories.js?admin=${commitSha}-${attempt}`, { cache: "no-store" }),
           fetch(`cast-admin-auth.js?admin=${commitSha}-${attempt}`, { cache: "no-store" }),
+          fetch(`cast-site-settings.js?admin=${commitSha}-${attempt}`, { cache: "no-store" }),
         ]);
-        const [source, photographersSource, categoriesSource, authSource] = await Promise.all([
+        const [source, photographersSource, categoriesSource, authSource, siteSettingsSource] = await Promise.all([
           castResponse.text(),
           photographersResponse.text(),
           categoriesResponse.text(),
           authResponse.text(),
+          siteSettingsResponse.text(),
         ]);
         if (
           source === expectedSource
           && photographersSource === expectedPhotographersSource
           && categoriesSource === expectedCategoriesSource
           && authSource === expectedAuthSource
+          && siteSettingsSource === expectedSiteSettingsSource
         ) {
           return true;
         }
@@ -1574,17 +1639,19 @@
     setBusy(true);
     setSyncStatus("جاري تجهيز النشر");
     try {
-      const [remoteDataSource, remotePhotographersSource, remoteCategoriesSource, remoteAuthSource] = await Promise.all([
+      const [remoteDataSource, remotePhotographersSource, remoteCategoriesSource, remoteAuthSource, remoteSiteSettingsSource] = await Promise.all([
         fetchGithubRaw("cast-data.js"),
         fetchGithubRaw("photographers-data.js"),
         fetchGithubRaw("cast-categories.js"),
         fetchGithubRaw("cast-admin-auth.js"),
+        fetchGithubRaw("cast-site-settings.js"),
       ]);
       if (
         remoteDataSource !== baseDataSource
         || remotePhotographersSource !== basePhotographersSource
         || remoteCategoriesSource !== baseCategoriesSource
         || remoteAuthSource !== baseAuthSource
+        || remoteSiteSettingsSource !== baseSiteSettingsSource
       ) {
         throw new Error("تغيرت بيانات الموقع منذ فتح اللوحة. اضغط تحديث البيانات ثم أعد تعديلك");
       }
@@ -1602,6 +1669,7 @@
       );
       const nextCategoriesSource = serializeCategories(categoryDefinitions);
       const nextAuthSource = serializeAdminAuth(authConfig);
+      const nextSiteSettingsSource = serializeSiteSettings(siteSettings);
       const version = createVersion();
       const ref = await githubRequest(
         `/repos/${repository.owner}/${repository.name}/git/ref/heads/${repository.branch}`,
@@ -1639,6 +1707,7 @@
         { path: "photographers-data.js", content: nextPhotographersSource },
         { path: "cast-categories.js", content: nextCategoriesSource },
         { path: "cast-admin-auth.js", content: nextAuthSource },
+        { path: "cast-site-settings.js", content: nextSiteSettingsSource },
         adminHtmlSource,
         ...htmlSources,
         ...photographerHtmlSources,
@@ -1689,6 +1758,7 @@
       basePhotographersSource = nextPhotographersSource;
       baseCategoriesSource = nextCategoriesSource;
       baseAuthSource = nextAuthSource;
+      baseSiteSettingsSource = nextSiteSettingsSource;
       dataDirty = false;
       elements.publishChanges.disabled = true;
       setSyncStatus("جاري نشر الموقع");
@@ -1697,6 +1767,7 @@
         nextPhotographersSource,
         nextCategoriesSource,
         nextAuthSource,
+        nextSiteSettingsSource,
         commit.sha,
       );
       if (deployed) {
@@ -1757,6 +1828,10 @@
   elements.confirmDelete.addEventListener("click", confirmDelete);
   elements.cancelDelete.addEventListener("click", () => elements.deleteDialog.close());
   elements.reloadData.addEventListener("click", loadData);
+  elements.heroSettings.addEventListener("click", openHeroSettings);
+  elements.heroForm.addEventListener("submit", saveHeroSettings);
+  elements.closeHeroDialog.addEventListener("click", () => elements.heroDialog.close());
+  elements.cancelHero.addEventListener("click", () => elements.heroDialog.close());
   elements.securitySettings.addEventListener("click", openSecuritySettings);
   elements.securityForm.addEventListener("submit", saveSecuritySettings);
   elements.removeAdminPassword.addEventListener("click", removeAdminPassword);
