@@ -7,7 +7,7 @@ window.photographers = [
   },
   {
     id: "osama-photographer",
-    name: "أسامة",
+    name: "المصور أسامة",
     folderUrl: "https://drive.google.com/drive/folders/1e4M9Derlr9diKrL_LDOZBXb3d-8I8daT?usp=sharing",
     photoUrl: "assets/osama-photographer.png",
   }
