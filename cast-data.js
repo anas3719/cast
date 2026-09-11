@@ -231,6 +231,7 @@ window.castMembers = [
     weight: "",
     nationality: "",
     speaking: "",
+    displayOrder: 19,
     note: "",
   },
   {
@@ -245,6 +246,7 @@ window.castMembers = [
     weight: "57",
     nationality: "فلسطينية",
     speaking: "غير متحدثة",
+    displayOrder: 18,
     completedOrder: 12,
     note: "",
   },
@@ -318,6 +320,7 @@ window.castMembers = [
     weight: "",
     nationality: "",
     speaking: "",
+    displayOrder: 17,
     note: "",
   },
   {
@@ -378,6 +381,7 @@ window.castMembers = [
     weight: "49",
     nationality: "سعودية",
     speaking: "متحدثة",
+    displayOrder: 16,
     completedOrder: 25,
     note: "",
   },
@@ -393,6 +397,7 @@ window.castMembers = [
     weight: "64",
     nationality: "فلسطينية",
     speaking: "متحدثة",
+    displayOrder: 15,
     completedOrder: 20,
     note: "",
   },
@@ -436,6 +441,7 @@ window.castMembers = [
     weight: "63",
     nationality: "اردنية",
     speaking: "متحدثة",
+    displayOrder: 14,
     completedOrder: 23,
     note: "",
   },
@@ -451,6 +457,7 @@ window.castMembers = [
     weight: "",
     nationality: "",
     speaking: "",
+    displayOrder: 13,
     note: "",
   },
   {
@@ -465,6 +472,7 @@ window.castMembers = [
     weight: "",
     nationality: "",
     speaking: "",
+    displayOrder: 12,
     note: "",
   },
   {
@@ -479,6 +487,7 @@ window.castMembers = [
     weight: "",
     nationality: "",
     speaking: "",
+    displayOrder: 2,
     note: "",
   },
   {
@@ -522,6 +531,7 @@ window.castMembers = [
     weight: "",
     nationality: "",
     speaking: "",
+    displayOrder: 11,
     note: "اقل مبلغ للساعة 500 ريال",
   },
   {
@@ -661,6 +671,7 @@ window.castMembers = [
     weight: "",
     nationality: "",
     speaking: "",
+    displayOrder: 10,
     note: "اقل مبلغ للساعة 500 ريال",
   },
   {
@@ -721,6 +732,7 @@ window.castMembers = [
     weight: "",
     nationality: "",
     speaking: "",
+    displayOrder: 9,
     note: "",
   },
   {
@@ -811,6 +823,7 @@ window.castMembers = [
     weight: "55",
     nationality: "سعودية",
     speaking: "متحدثة",
+    displayOrder: 8,
     completedOrder: 1,
     note: "",
   },
@@ -868,6 +881,7 @@ window.castMembers = [
     weight: "",
     nationality: "",
     speaking: "",
+    displayOrder: 7,
     note: "",
   },
   {
@@ -911,6 +925,7 @@ window.castMembers = [
     weight: "54",
     nationality: "سعودية",
     speaking: "متحدثة",
+    displayOrder: 1,
     pinnedOrder: 1,
     note: "",
   },
@@ -926,6 +941,7 @@ window.castMembers = [
     weight: "55",
     nationality: "باكستانية",
     speaking: "غير متحدثة",
+    displayOrder: 6,
     note: "",
   },
   {
@@ -940,6 +956,7 @@ window.castMembers = [
     weight: "",
     nationality: "",
     speaking: "متحدثة",
+    displayOrder: 5,
     note: "",
   },
   {
@@ -982,6 +999,7 @@ window.castMembers = [
     weight: "55",
     nationality: "",
     speaking: "متحدثة",
+    displayOrder: 4,
     note: "",
   },
   {
@@ -996,6 +1014,7 @@ window.castMembers = [
     weight: "46",
     nationality: "",
     speaking: "متحدثة",
+    displayOrder: 3,
     note: "",
   },
   {
