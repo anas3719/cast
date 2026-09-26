@@ -1185,8 +1185,17 @@
         details = "";
       }
 
-      if (response.status === 401 || response.status === 403) {
-        throw new Error("رمز GitHub غير صالح أو تنقصه صلاحية Contents: Read and write");
+      if (response.status === 401) {
+        const error = new Error("انتهت صلاحية اتصال النشر. أدخل كلمة مرور الإدارة لاستعادته؛ تعديلاتك ما زالت موجودة");
+        error.status = 401;
+        throw error;
+      }
+      if (response.status === 403 || response.status === 429) {
+        const limited = response.headers.get("x-ratelimit-remaining") === "0"
+          || response.headers.has("retry-after") || /rate limit/i.test(details);
+        throw new Error(limited
+          ? "GitHub أوقف الطلبات مؤقتًا. انتظر قليلًا ثم اضغط حفظ مجددًا؛ الاتصال والتعديلات محفوظان في الصفحة"
+          : "GitHub رفض صلاحية النشر لهذا المستودع. الاتصال لم يُحذف؛ يجب مراجعة صلاحية الرمز");
       }
       if (response.status === 409 || response.status === 422) {
         throw new Error("تغيرت نسخة الموقع أثناء التعديل. حدّث البيانات ثم حاول مرة أخرى");
@@ -1211,10 +1220,8 @@
       },
     );
 
-    if (!response.ok && githubToken && (response.status === 401 || response.status === 403)) {
-      githubToken = "";
-      clearStoredGithubToken();
-      updateConnectionButton();
+    if (!response.ok && githubToken && response.status === 401) {
+      // Public reads must not mutate the credential shared by concurrent requests.
       response = await fetch(url, {
         cache: "no-store",
         headers: {
@@ -1352,7 +1359,11 @@
       document.body.classList.remove("is-admin-locked");
       elements.adminLockDialog.close();
       elements.adminPassword.value = "";
-      await loadData();
+      if (dataDirty) {
+        await publishChanges();
+      } else if (!formDirty) {
+        await loadData();
+      }
     } catch (error) {
       elements.adminLockError.textContent = error.message;
       elements.adminLockError.hidden = false;
@@ -1780,10 +1791,13 @@
     } catch (error) {
       setSyncStatus("تعذر نشر التغييرات", "error");
       showToast(error.message, "error");
-      if (/رمز GitHub|صلاحية/.test(error.message)) {
+      if (error.status === 401) {
         githubToken = "";
         clearStoredGithubToken();
         updateConnectionButton();
+        showAdminLock();
+        elements.adminLockError.textContent = error.message;
+        elements.adminLockError.hidden = false;
       }
     } finally {
       setBusy(false);
