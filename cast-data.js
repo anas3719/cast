@@ -457,7 +457,7 @@ window.castMembers = [
     weight: "58",
     nationality: "يمنية",
     speaking: "متحدثة",
-    displayOrder: 12,
+    displayOrder: 3,
     completedOrder: 36,
     note: "",
   },
@@ -473,7 +473,7 @@ window.castMembers = [
     weight: "",
     nationality: "",
     speaking: "",
-    displayOrder: 11,
+    displayOrder: 12,
     note: "",
   },
   {
@@ -533,7 +533,7 @@ window.castMembers = [
     weight: "",
     nationality: "",
     speaking: "",
-    displayOrder: 10,
+    displayOrder: 11,
     note: "اقل مبلغ للساعة 500 ريال",
   },
   {
@@ -673,7 +673,7 @@ window.castMembers = [
     weight: "",
     nationality: "",
     speaking: "",
-    displayOrder: 9,
+    displayOrder: 10,
     note: "اقل مبلغ للساعة 500 ريال",
   },
   {
@@ -734,7 +734,7 @@ window.castMembers = [
     weight: "",
     nationality: "",
     speaking: "",
-    displayOrder: 8,
+    displayOrder: 9,
     note: "",
   },
   {
@@ -825,7 +825,7 @@ window.castMembers = [
     weight: "55",
     nationality: "سعودية",
     speaking: "متحدثة",
-    displayOrder: 7,
+    displayOrder: 8,
     completedOrder: 1,
     note: "",
   },
@@ -883,7 +883,7 @@ window.castMembers = [
     weight: "",
     nationality: "",
     speaking: "",
-    displayOrder: 6,
+    displayOrder: 7,
     note: "",
   },
   {
@@ -943,7 +943,7 @@ window.castMembers = [
     weight: "55",
     nationality: "باكستانية",
     speaking: "غير متحدثة",
-    displayOrder: 5,
+    displayOrder: 6,
     note: "",
   },
   {
@@ -958,7 +958,7 @@ window.castMembers = [
     weight: "",
     nationality: "",
     speaking: "متحدثة",
-    displayOrder: 4,
+    displayOrder: 5,
     note: "",
   },
   {
@@ -1001,7 +1001,7 @@ window.castMembers = [
     weight: "55",
     nationality: "",
     speaking: "متحدثة",
-    displayOrder: 3,
+    displayOrder: 4,
     note: "",
   },
   {
