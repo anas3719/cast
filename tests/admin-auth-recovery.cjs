@@ -7,7 +7,7 @@ function section(start, end) {
 }
 async function run() {
   const context = vm.createContext({
-    githubToken: 'test-only', repository: { owner: 'test', name: 'test', branch: 'main' },
+    login: null, githubToken: 'test-only', repository: { owner: 'test', name: 'test', branch: 'main' },
     fetch: async () => new Response('{}', { status: 403, headers: { 'x-ratelimit-remaining': '0' } }),
   });
   vm.runInContext(section('  async function githubRequest(', '  async function loadSourceIntoWindow('), context);

@@ -1,0 +1,14 @@
+{
+  "name": "cast-admin-auth",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/build-auth.cjs",
+    "test": "node tests/admin-auth-recovery.cjs && node --test tests/auth-service.test.cjs tests/admin-login.test.cjs"
+  },
+  "engines": {
+    "node": "24.x"
+  },
+  "dependencies": {
+    "jose": "^6.2.12"
+  }
+}

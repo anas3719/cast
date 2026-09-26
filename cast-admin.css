@@ -1113,13 +1113,22 @@ body.is-busy textarea {
 
   .header-actions {
     display: grid;
-    grid-template-columns: 44px 44px 1fr 1fr;
+    grid-template-columns: 44px minmax(0, 1fr);
   }
 
   .header-actions .button {
     min-width: 0;
     padding: 0 10px;
     font-size: 13px;
+  }
+
+  .header-actions #github-connect {
+    min-height: 44px;
+    white-space: nowrap;
+  }
+
+  .header-actions #publish-changes {
+    grid-column: 1 / -1;
   }
 
   .directory-panel,

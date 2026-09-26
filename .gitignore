@@ -1,0 +1,8 @@
+node_modules/
+.vercel/
+.admin-setup/
+.env*
+public-service/
+
+.vercel
+.env*

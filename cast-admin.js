@@ -9,6 +9,9 @@
 
   const githubTokenStorageKey = "cast-admin-github-token";
   const adminUnlockStorageKey = "cast-admin-unlocked-hash";
+  const draftStorageKey = "cast-admin-pending-draft-v1";
+  const login = window.castAdminLogin;
+  let leavingForLogin = false;
 
   const castPagePaths = [
     "index.html",
@@ -755,8 +758,59 @@
   function markDataDirty(message = "لديك تغييرات غير منشورة") {
     dataDirty = true;
     formDirty = false;
+    savePendingDraft();
     elements.publishChanges.disabled = false;
     setSyncStatus(message, "dirty");
+  }
+
+  function savePendingDraft() {
+    try {
+      localStorage.setItem(draftStorageKey, JSON.stringify({ members, categoryDefinitions, siteSettings,
+        baseDataSource, basePhotographersSource, baseCategoriesSource, baseAuthSource, baseSiteSettingsSource }));
+      return true;
+    } catch {
+      showToast("تعذر حفظ المسودة على الجهاز؛ لا تغلق الصفحة", "error");
+      return false;
+    }
+  }
+
+  function clearPendingDraft() {
+    try { localStorage.removeItem(draftStorageKey); } catch { /* The published data is still safe. */ }
+  }
+
+  function restorePendingDraft() {
+    try {
+      const draft = JSON.parse(localStorage.getItem(draftStorageKey) || "null");
+      if (!draft || !Array.isArray(draft.members) || !Array.isArray(draft.categoryDefinitions)
+        || ![draft.baseDataSource, draft.basePhotographersSource, draft.baseCategoriesSource,
+          draft.baseAuthSource, draft.baseSiteSettingsSource].every(x => typeof x === "string")) return false;
+      members = draft.members;
+      categoryDefinitions = normalizeCategoryDefinitions(draft.categoryDefinitions);
+      siteSettings = normalizeSiteSettings(draft.siteSettings);
+      ({ baseDataSource, basePhotographersSource, baseCategoriesSource, baseAuthSource, baseSiteSettingsSource } = draft);
+      dataDirty = true;
+      elements.publishChanges.disabled = false;
+      elements.publishChanges.hidden = false;
+      syncCategoryOptions();
+      renderProfiles();
+      setSyncStatus("مسودة محفوظة لم تُنشر بعد", "dirty");
+      return true;
+    } catch { return false; }
+  }
+
+  function startGithubLogin() {
+    if (formDirty) {
+      showToast("اضغط حفظ البروفايل أولاً لحفظ تعديلك قبل تسجيل الدخول", "error");
+      return;
+    }
+    if (dataDirty && !savePendingDraft()) return;
+    try {
+      leavingForLogin = true;
+      login.start();
+    } catch {
+      leavingForLogin = false;
+      showToast("تعذر بدء تسجيل الدخول؛ اسمح بتخزين بيانات الموقع في المتصفح", "error");
+    }
   }
 
   async function saveProfile(event) {
@@ -1171,7 +1225,7 @@
     };
 
     if (githubToken) headers.Authorization = `Bearer ${githubToken}`;
-    const response = await fetch(`https://api.github.com${path}`, {
+    const response = login?.connected ? await login.request(path, options) : await fetch(`https://api.github.com${path}`, {
       ...options,
       headers,
     });
@@ -1207,6 +1261,10 @@
   }
 
   async function fetchGithubRaw(path) {
+    if (login?.connected) {
+      const file = await githubRequest(`/repos/${repository.owner}/${repository.name}/contents/${path}?ref=${repository.branch}`);
+      return new TextDecoder().decode(Uint8Array.from(atob(file.content.replace(/\s/g, "")), c => c.charCodeAt(0)));
+    }
     const url = `https://api.github.com/repos/${repository.owner}/${repository.name}/contents/${path}?ref=${repository.branch}`;
     let response = await fetch(
       url,
@@ -1422,7 +1480,7 @@
     await publishChanges();
   }
 
-  async function loadData() {
+  async function loadData(options = {}) {
     if (dataDirty && !window.confirm("سيتم تجاهل التغييرات غير المنشورة. هل تريد المتابعة؟")) {
       return;
     }
@@ -1476,6 +1534,8 @@
       showEmptyEditor();
       renderProfiles();
       setSyncStatus("البيانات محدثة", "success");
+      if (options.restoreDraft) restorePendingDraft();
+      else clearPendingDraft();
     } catch (error) {
       setSyncStatus("تعذر تحميل البيانات", "error");
       showToast(error.message, "error");
@@ -1486,12 +1546,12 @@
 
   function updateConnectionButton() {
     elements.securitySettings.hidden = true;
+    elements.githubConnect.hidden = false;
     const text = elements.githubConnect.querySelector("span");
-    text.textContent = githubToken ? "GitHub متصل" : "اتصال GitHub";
-    elements.githubConnect.classList.toggle("is-connected", Boolean(githubToken));
-    elements.githubConnect.title = githubToken
-      ? "الاتصال محفوظ ويمكنك النشر مباشرة"
-      : "اتصال GitHub للنشر";
+    const connected = Boolean(login?.connected || githubToken);
+    text.textContent = connected ? "GitHub متصل" : "الدخول بحساب GitHub";
+    elements.githubConnect.classList.toggle("is-connected", connected);
+    elements.githubConnect.title = connected ? "تجديد تسجيل الدخول بحساب GitHub" : "الدخول بحساب GitHub للنشر";
   }
 
   function openGithubDialog(shouldPublish = false) {
@@ -1635,15 +1695,20 @@
       return;
     }
     if (!dataDirty) return;
-    if (!githubToken) {
-      setSyncStatus("التعديل جاهز، لكن اتصال النشر غير متاح", "error");
-      showToast("يمكنك فتح اللوحة دون كلمة مرور. نشر التعديلات يحتاج اتصال GitHub صالحًا", "error");
+    if (!githubToken && !login?.connected) {
+      setSyncStatus("المسودة محفوظة؛ جاري تسجيل الدخول للنشر", "dirty");
+      startGithubLogin();
       return;
     }
 
     setBusy(true);
     setSyncStatus("جاري تجهيز النشر");
     try {
+      if (login?.connected && !await login.refresh()) {
+        updateConnectionButton();
+        startGithubLogin();
+        return;
+      }
       const [remoteDataSource, remotePhotographersSource, remoteCategoriesSource, remoteAuthSource, remoteSiteSettingsSource] = await Promise.all([
         fetchGithubRaw("cast-data.js"),
         fetchGithubRaw("photographers-data.js"),
@@ -1770,6 +1835,8 @@
       baseAuthSource = nextAuthSource;
       baseSiteSettingsSource = nextSiteSettingsSource;
       dataDirty = false;
+      clearPendingDraft();
+      elements.publishChanges.hidden = true;
       elements.publishChanges.disabled = true;
       setSyncStatus("جاري نشر الموقع");
       const deployed = await waitForPublicData(
@@ -1791,10 +1858,11 @@
       setSyncStatus("تعذر نشر التغييرات", "error");
       showToast(error.message, "error");
       if (error.status === 401) {
+        login?.clear();
         githubToken = "";
         clearStoredGithubToken();
         updateConnectionButton();
-        setSyncStatus("اتصال النشر غير صالح؛ التعديلات ما زالت في الصفحة", "error");
+        setSyncStatus("انتهت جلسة الدخول؛ المسودة محفوظة. اضغط الدخول بحساب GitHub", "error");
       }
     } finally {
       setBusy(false);
@@ -1851,7 +1919,7 @@
   elements.adminLockForm.addEventListener("submit", unlockAdminAccess);
   elements.adminLockDialog.addEventListener("cancel", (event) => event.preventDefault());
   elements.publishChanges.addEventListener("click", publishChanges);
-  elements.githubConnect.addEventListener("click", () => openGithubDialog(false));
+  elements.githubConnect.addEventListener("click", startGithubLogin);
   elements.githubForm.addEventListener("submit", connectGithub);
   elements.disconnectGithub.addEventListener("click", disconnectGithub);
   elements.closeGithubDialog.addEventListener("click", () => elements.githubDialog.close());
@@ -1865,6 +1933,7 @@
   });
 
   window.addEventListener("beforeunload", (event) => {
+    if (leavingForLogin) return;
     if (!dataDirty && !formDirty) return;
     event.preventDefault();
     event.returnValue = "";
@@ -1872,9 +1941,16 @@
 
   async function initializeAdmin() {
     initializeIcons();
+    if (login?.returned) {
+      githubToken = "";
+      clearStoredGithubToken();
+    }
+    try { await login?.refresh(); } catch (error) { showToast(error.message, "error"); }
     updateConnectionButton();
     document.body.classList.remove("is-admin-locked");
-    await loadData();
+    await loadData({ restoreDraft: true });
+    if (login?.error) showToast(login.error, "error");
+    if (login?.returned && dataDirty) await publishChanges();
   }
 
   initializeAdmin();
