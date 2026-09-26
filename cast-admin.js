@@ -1186,7 +1186,7 @@
       }
 
       if (response.status === 401) {
-        const error = new Error("انتهت صلاحية اتصال النشر. أدخل كلمة مرور الإدارة لاستعادته؛ تعديلاتك ما زالت موجودة");
+        const error = new Error("GitHub رفض اتصال النشر الحالي؛ تعديلاتك ما زالت موجودة في الصفحة");
         error.status = 401;
         throw error;
       }
@@ -1248,9 +1248,7 @@
   }
 
   function isAdminUnlocked() {
-    const passwordAccepted = !authConfig.passwordHash || readStoredAdminUnlock() === authConfig.passwordHash;
-    const publishingReady = !authConfig.encryptedGithubToken || Boolean(githubToken);
-    return passwordAccepted && publishingReady;
+    return true;
   }
 
   async function hashAdminPassword(password, salt = authConfig.salt) {
@@ -1487,6 +1485,7 @@
   }
 
   function updateConnectionButton() {
+    elements.securitySettings.hidden = true;
     const text = elements.githubConnect.querySelector("span");
     text.textContent = githubToken ? "GitHub متصل" : "اتصال GitHub";
     elements.githubConnect.classList.toggle("is-connected", Boolean(githubToken));
@@ -1637,8 +1636,8 @@
     }
     if (!dataDirty) return;
     if (!githubToken) {
-      setSyncStatus("أدخل كلمة مرور لوحة الإدارة", "error");
-      showAdminLock();
+      setSyncStatus("التعديل جاهز، لكن اتصال النشر غير متاح", "error");
+      showToast("يمكنك فتح اللوحة دون كلمة مرور. نشر التعديلات يحتاج اتصال GitHub صالحًا", "error");
       return;
     }
 
@@ -1795,9 +1794,7 @@
         githubToken = "";
         clearStoredGithubToken();
         updateConnectionButton();
-        showAdminLock();
-        elements.adminLockError.textContent = error.message;
-        elements.adminLockError.hidden = false;
+        setSyncStatus("اتصال النشر غير صالح؛ التعديلات ما زالت في الصفحة", "error");
       }
     } finally {
       setBusy(false);
@@ -1876,11 +1873,8 @@
   async function initializeAdmin() {
     initializeIcons();
     updateConnectionButton();
-    if (isAdminUnlocked()) {
-      await loadData();
-    } else {
-      showAdminLock();
-    }
+    document.body.classList.remove("is-admin-locked");
+    await loadData();
   }
 
   initializeAdmin();

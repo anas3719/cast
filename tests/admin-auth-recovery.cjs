@@ -11,6 +11,8 @@ async function run() {
     fetch: async () => new Response('{}', { status: 403, headers: { 'x-ratelimit-remaining': '0' } }),
   });
   vm.runInContext(section('  async function githubRequest(', '  async function loadSourceIntoWindow('), context);
+  vm.runInContext(section('  function isAdminUnlocked(', '  async function hashAdminPassword('), context);
+  assert.equal(context.isAdminUnlocked(), true, 'Editor opens without a password or publishing credential');
   await assert.rejects(context.githubRequest('/test'), /مؤقتًا/);
   assert.equal(context.githubToken, 'test-only');
   await assert.rejects(context.fetchGithubRaw('test.js'));
