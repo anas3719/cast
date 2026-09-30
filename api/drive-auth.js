@@ -36,6 +36,7 @@ module.exports = async (req, res) => {
     } catch { cookie(res, '', 0); return redirect(res, `${RETURN_URL}#cast-drive=failed`); }
   }
   if (action === 'callback' && req.method === 'GET') {
+    let phase = 'state';
     try {
       const raw = (req.headers.cookie || '').split('; ').find(value => value.startsWith(`${COOKIE}=`))?.slice(COOKIE.length + 1);
       const flow = await unseal(raw, 'cast-drive-state');
@@ -43,12 +44,22 @@ module.exports = async (req, res) => {
       if (url.searchParams.get('state') !== flow.state || url.searchParams.get('error') || !url.searchParams.get('code')) {
         throw new Error('Invalid OAuth state');
       }
+      phase = 'owner';
       await drive.requireOwner({ headers: { authorization: flow.authorization } });
+      phase = 'exchange';
       const { tokens } = await drive.client().getToken({ code: url.searchParams.get('code'),
         codeVerifier: flow.verifier, redirect_uri: drive.CALLBACK });
-      await drive.saveConnection(flow.authorization, await drive.protect(tokens));
+      phase = 'grant';
+      const protectedConnection = await drive.protect(tokens);
+      phase = 'store';
+      await drive.saveConnection(flow.authorization, protectedConnection);
       return redirect(res, `${RETURN_URL}#cast-drive=connected`);
-    } catch { cookie(res, '', 0); return redirect(res, `${RETURN_URL}#cast-drive=failed`); }
+    } catch (error) {
+      const reason = ['invalid_grant', 'invalid_client', 'access_denied'].includes(error.code) ? error.code : 'failed';
+      console.warn('cast-drive-callback-failed', { phase, reason,
+        status: Number.isInteger(error.status) ? error.status : null });
+      cookie(res, '', 0); return redirect(res, `${RETURN_URL}#cast-drive=failed`);
+    }
   }
   return json(res, 404, { message: 'غير مسموح.' });
 };

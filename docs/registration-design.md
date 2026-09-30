@@ -2,7 +2,7 @@
 
 Status (2026-09-30): rules, private runtime, resumable-upload form and private
 review editor implemented. Runtime and encrypted Drive-connection support are
-deployed, while the new Pages UI remains local. Anonymous intake stays closed.
+deployed, including the private review Pages UI. Anonymous intake stays closed.
 Google client credentials are configured in the backend; owner consent,
 durable approval/transfer, bot protection
 and actual publication acceptance remain unfinished; no feature-complete claim.
@@ -103,7 +103,7 @@ shared folder containing the applicant's contact record.
 
 ## Current Checks
 
-Run `npm test`: 29 focused Node tests and the existing admin-auth recovery check.
+Run `npm test`: 31 focused Node tests and the existing admin-auth recovery check.
 Synthetic browser checks passed for optional nationality, portrait upload via
 TUS, a pending-only receipt, private field editing, lost-save acknowledgement
 recovery without replay, and RTL layouts at desktop and 390x844.

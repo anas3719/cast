@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { randomBytes } = require('node:crypto');
+const { OAuth2Client } = require('google-auth-library');
 const drive = require('../lib/drive-auth.cjs');
 const handler = require('../api/drive-auth.js');
 const { seal, unseal, ORIGIN, OWNER_ID, SERVICE } = require('../lib/admin-auth.cjs');
@@ -58,4 +59,56 @@ test('invalid callback state is cleaned and returns only a closed failure hint',
   assert.equal(response.statusCode, 303);
   assert.equal(response.headers.Location, `${ORIGIN}/cast/cast-admin.html#cast-drive=failed`);
   assert.match(response.headers['Set-Cookie'], /Max-Age=0/);
+});
+test('valid callback stores only the encrypted limited connection and confirms the return', async () => {
+  const originalFetch = global.fetch;
+  const originalExchange = OAuth2Client.prototype.getToken;
+  let stored = false;
+  global.fetch = async (url, options) => {
+    if (url === 'https://api.github.com/user') return Response.json({ id: OWNER_ID });
+    assert.equal(url, 'https://vmnkdbceyqudcxddvljx.supabase.co/functions/v1/cast-registration');
+    assert.equal(options.headers.Origin, ORIGIN);
+    const body = JSON.parse(options.body);
+    assert.equal(body.action, 'drive-store');
+    assert.ok(!body.connection.includes('PRIVATE'));
+    assert.equal((await drive.connection(body.connection)).tokens.refresh_token, tokens.refresh_token);
+    stored = true;
+    return Response.json({ connected: true });
+  };
+  OAuth2Client.prototype.getToken = async input => {
+    assert.equal(input.redirect_uri, drive.CALLBACK);
+    assert.equal(input.codeVerifier, 'synthetic-verifier');
+    return { tokens };
+  };
+  try {
+    const authorization = `Bearer ${await seal({ sub: OWNER_ID, accessToken: 'PRIVATE-GITHUB',
+      accessExpires: Date.now() + 3600000 }, 'cast-session')}`;
+    const cookie = await seal({ state: 'expected', verifier: 'synthetic-verifier', authorization }, 'cast-drive-state', '10m');
+    const response = res();
+    await handler({ url: '/api/drive-auth?action=callback&state=expected&code=synthetic-code',
+      method: 'GET', headers: { cookie: `__Host-cast-drive=${cookie}` } }, response);
+    assert.equal(stored, true);
+    assert.equal(response.headers.Location, `${ORIGIN}/cast/cast-admin.html#cast-drive=connected`);
+    assert.match(response.headers['Set-Cookie'], /Max-Age=0/);
+  } finally { global.fetch = originalFetch; OAuth2Client.prototype.getToken = originalExchange; }
+});
+test('missing Drive permission fails closed with diagnostics that contain no credentials', async () => {
+  const originalFetch = global.fetch;
+  const originalExchange = OAuth2Client.prototype.getToken;
+  const originalWarn = console.warn;
+  const warnings = [];
+  global.fetch = async url => { assert.equal(url, 'https://api.github.com/user'); return Response.json({ id: OWNER_ID }); };
+  OAuth2Client.prototype.getToken = async () => ({ tokens: { ...tokens, scope: '' } });
+  console.warn = (...args) => warnings.push(args);
+  try {
+    const authorization = `Bearer ${await seal({ sub: OWNER_ID, accessToken: 'PRIVATE-GITHUB',
+      accessExpires: Date.now() + 3600000 }, 'cast-session')}`;
+    const cookie = await seal({ state: 'expected', verifier: 'synthetic-verifier', authorization }, 'cast-drive-state', '10m');
+    const response = res();
+    await handler({ url: '/api/drive-auth?action=callback&state=expected&code=PRIVATE-CODE', method: 'GET',
+      headers: { cookie: `__Host-cast-drive=${cookie}` } }, response);
+    assert.equal(response.headers.Location, `${ORIGIN}/cast/cast-admin.html#cast-drive=failed`);
+    assert.deepEqual(warnings, [['cast-drive-callback-failed', { phase: 'grant', reason: 'failed', status: null }]]);
+    assert.ok(!JSON.stringify(warnings).includes('PRIVATE'));
+  } finally { global.fetch = originalFetch; OAuth2Client.prototype.getToken = originalExchange; console.warn = originalWarn; }
 });
