@@ -1,0 +1,7 @@
+.admin-setup/
+.env*
+.registration-qa/
+.git/
+node_modules/
+vendor/
+supabase/

@@ -54,6 +54,26 @@
     get returned() { return returned; },
     get error() { return error; },
     refresh, clear,
+    async connectDrive() {
+      if (!await refresh()) throw new Error('سجّل الدخول بحساب GitHub أولًا.');
+      const response = await fetch(`${service}/api/drive-auth?action=prepare`, {
+        method: 'POST', cache: 'no-store', headers: { Authorization: `Bearer ${session}` },
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || 'تعذر بدء ربط الدرايف.');
+      const target = new URL(data.url);
+      if (target.origin !== service || target.pathname !== '/api/drive-auth'
+        || target.searchParams.get('action') !== 'start') throw new Error('رابط الربط غير صحيح.');
+      location.assign(target.href);
+    },
+    async registrations(action, body = {}) {
+      if (!await refresh()) throw new Error('سجّل الدخول بحساب GitHub لعرض الطلبات الخاصة.');
+      return fetch('https://vmnkdbceyqudcxddvljx.supabase.co/functions/v1/cast-registration', {
+        method: 'POST', cache: 'no-store',
+        headers: { Authorization: `Bearer ${session}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...body, action }),
+      });
+    },
     start() {
       const nonce = [...crypto.getRandomValues(new Uint8Array(32))].map(x => x.toString(16).padStart(2, '0')).join('');
       sessionStorage.setItem(stateKey, nonce);

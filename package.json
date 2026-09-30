@@ -3,12 +3,17 @@
   "private": true,
   "scripts": {
     "build": "node scripts/build-auth.cjs",
-    "test": "node tests/admin-auth-recovery.cjs && node --test tests/auth-service.test.cjs tests/admin-login.test.cjs"
+    "test": "node tests/admin-auth-recovery.cjs && node --test tests/auth-service.test.cjs tests/admin-login.test.cjs tests/registration-rules.test.cjs tests/registration-service.test.cjs tests/drive-auth.test.cjs",
+    "vendor:registration": "node scripts/vendor-registration.cjs"
   },
   "engines": {
     "node": "24.x"
   },
   "dependencies": {
+    "google-auth-library": "11.1.0",
     "jose": "^6.2.12"
+  },
+  "devDependencies": {
+    "tus-js-client": "4.3.1"
   }
 }

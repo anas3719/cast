@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="referrer" content="no-referrer" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>تسجيل الكاست</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="cast-admin.css?v=20260930" />
+  <link rel="stylesheet" href="cast-registration.css?v=20260930" />
+</head>
+<body class="registration-page">
+  <header class="registration-header">
+    <a href="./" class="registration-brand">الكاست</a>
+    <span>طلب انضمام</span>
+  </header>
+  <main class="registration-main">
+    <h1>تسجيل الكاست</h1>
+    <div id="registration-notice" class="registration-notice" role="status">جاري التحقق من إتاحة التسجيل</div>
+    <form id="registration-form" novalidate>
+      <section class="registration-section" aria-labelledby="details-heading">
+        <h2 id="details-heading">البيانات الشخصية</h2>
+        <div class="registration-grid">
+          <label class="field registration-wide"><span>الاسم</span><input name="name" autocomplete="name" maxlength="120" required aria-describedby="error-name" /><small id="error-name" class="registration-error"></small></label>
+          <fieldset class="registration-options"><legend>الجنس</legend><label><input type="radio" name="gender" value="male" required />ذكر</label><label><input type="radio" name="gender" value="female" />أنثى</label><small id="error-gender" class="registration-error"></small></fieldset>
+          <label class="field"><span>العمر بالسنوات</span><input name="age" inputmode="numeric" required aria-describedby="error-age" /><small id="error-age" class="registration-error"></small></label>
+          <label class="field"><span>الطول بالسنتيمتر</span><input name="height" inputmode="decimal" required aria-describedby="error-height" /><small id="error-height" class="registration-error"></small></label>
+          <label class="field"><span>الوزن بالكيلوجرام</span><input name="weight" inputmode="decimal" required aria-describedby="error-weight" /><small id="error-weight" class="registration-error"></small></label>
+          <label class="field"><span>الجنسية <span class="optional-label">اختياري</span></span><input name="nationality" maxlength="80" aria-describedby="error-nationality" /><small id="error-nationality" class="registration-error"></small></label>
+          <fieldset class="registration-options"><legend>التحدث</legend><label><input type="radio" name="speaking" value="yes" required />متحدث / متحدثة</label><label><input type="radio" name="speaking" value="no" />غير متحدث / غير متحدثة</label><small id="error-speaking" class="registration-error"></small></fieldset>
+          <label class="field registration-wide"><span>رقم الواتساب مع رمز الدولة</span><input name="whatsapp" type="tel" dir="ltr" autocomplete="tel" placeholder="+966…" required aria-describedby="phone-privacy error-whatsapp" /><small id="phone-privacy">للتواصل الخاص مع الإدارة فقط، لا يظهر للعملاء.</small><small id="error-whatsapp" class="registration-error"></small></label>
+        </div>
+      </section>
+      <section class="registration-section" aria-labelledby="media-heading">
+        <h2 id="media-heading">الصورة والأعمال</h2>
+        <div class="portrait-upload">
+          <div class="registration-portrait"><img id="portrait-preview" alt="معاينة صورة البروفايل" hidden /><i data-lucide="image" aria-hidden="true"></i></div>
+          <label class="field"><span>صورة البروفايل</span><input id="portrait-file" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" required aria-describedby="error-portrait" /><small id="error-portrait" class="registration-error"></small></label>
+        </div>
+        <fieldset class="registration-options works-options"><legend>الأعمال</legend><label><input type="radio" name="worksMode" value="upload" checked />إرفاق صور ومقاطع</label><label><input type="radio" name="worksMode" value="drive" />رابط Google Drive</label></fieldset>
+        <div id="uploaded-works">
+          <label class="field"><span>من عملين إلى 10 أعمال، غير صورة البروفايل</span><input id="works-files" type="file" multiple accept="image/jpeg,image/png,image/webp,image/heic,image/heif,video/mp4,video/quicktime,video/webm" aria-describedby="media-limits error-works" /><small id="media-limits">حتى 2 جيجابايت لكل فيديو، بدون ضغط.</small><small id="error-works" class="registration-error"></small></label>
+          <ul id="attachment-list" class="registration-file-list"></ul>
+        </div>
+        <label id="drive-works" class="field" hidden><span>رابط مجلد الأعمال في Google Drive</span><input name="folderUrl" type="url" dir="ltr" placeholder="https://drive.google.com/drive/folders/…" aria-describedby="drive-count error-folderUrl" /><small id="drive-count">مجلد متاح للمشاهدة، فيه من عملين إلى 10 أعمال.</small><small id="error-folderUrl" class="registration-error"></small></label>
+      </section>
+      <div id="security-challenge"></div>
+      <div class="registration-progress" hidden><label for="upload-progress" id="progress-label">رفع المرفقات</label><progress id="upload-progress" max="100" value="0"></progress></div>
+      <div id="submission-error" class="registration-error" role="alert" tabindex="-1"></div>
+      <div class="registration-actions"><button id="submit-registration" type="submit" class="button button-primary" disabled><i data-lucide="send" aria-hidden="true"></i><span>إرسال الطلب</span></button><button id="cancel-upload" type="button" class="button button-secondary" hidden>إيقاف الرفع</button></div>
+    </form>
+    <section id="registration-receipt" class="registration-receipt" hidden tabindex="-1"><i data-lucide="circle-check" aria-hidden="true"></i><h2>تم استلام طلبك</h2><p>طلبك بانتظار مراجعة الإدارة، ولم يُنشر بعد.</p><p>رقم الطلب: <bdi id="receipt-number"></bdi></p></section>
+  </main>
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+  <script src="vendor/tus.min.js"></script>
+  <script src="cast-registration-rules.js?v=20260930"></script>
+  <script src="cast-register.js?v=20260930"></script>
+</body>
+</html>

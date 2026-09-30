@@ -3,6 +3,7 @@ node_modules/
 .admin-setup/
 .env*
 public-service/
+.registration-qa/
 
 .vercel
 .env*

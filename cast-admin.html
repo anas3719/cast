@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
   <head>
     <meta charset="UTF-8" />
-    <script src="cast-admin-login.js?v=20260926-1"></script>
+    <script src="cast-admin-login.js?v=20260930-registration"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex,nofollow" />
     <meta name="theme-color" content="#071014" />
@@ -14,6 +14,7 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="cast-admin.css?v=20260926-login" />
+    <link rel="stylesheet" href="cast-registration.css?v=20260930" />
   </head>
   <body>
     <header class="admin-header">
@@ -76,6 +77,10 @@
             <span id="profiles-count" class="profiles-count">0 ملف</span>
           </div>
           <div class="directory-actions">
+            <button id="review-registrations" class="button button-secondary" type="button">
+              <i data-lucide="inbox" aria-hidden="true"></i>
+              <span>طلبات التسجيل</span>
+            </button>
             <button id="hero-settings" class="button button-secondary" type="button">
               <i data-lucide="panel-top" aria-hidden="true"></i>
               <span>تعديل الهيرو</span>
@@ -408,13 +413,21 @@
       </form>
     </dialog>
 
+    <dialog id="registrations-dialog" class="admin-dialog registrations-dialog" aria-labelledby="registrations-title">
+      <div class="dialog-heading"><h2 id="registrations-title">طلبات التسجيل</h2><button id="close-registrations" class="icon-button" type="button" aria-label="إغلاق"><i data-lucide="x" aria-hidden="true"></i></button></div>
+      <p id="registrations-status" role="status">جاري التحميل</p>
+      <button id="registrations-login" type="button" class="button button-primary" hidden><i data-lucide="log-in" aria-hidden="true"></i>الدخول بحساب GitHub</button>
+      <div class="registration-review-layout"><nav id="registration-review-list" class="registration-review-list" aria-label="طلبات التسجيل"></nav><div id="registration-review-editor"></div></div>
+    </dialog>
     <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
     <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
     <script src="cast-site-settings.js?v=20260824-hero1"></script>
     <script src="cast-categories.js?v=20260824-154500"></script>
-    <script src="cast-admin-auth.js?v=20260926-221054"></script>
+    <script src="cast-admin-auth.js?v=20260926-222404"></script>
     <script src="cast-admin.js?v=20260926-github-login"></script>
+    <script src="cast-registration-rules.js?v=20260930"></script>
+    <script src="cast-registrations.js?v=20260930"></script>
   </body>
 </html>
