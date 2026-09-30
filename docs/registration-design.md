@@ -103,10 +103,16 @@ shared folder containing the applicant's contact record.
 
 ## Current Checks
 
-Run `npm test`: 31 focused Node tests and the existing admin-auth recovery check.
+Run `npm test`: 32 focused Node tests and the existing admin-auth recovery check.
 Synthetic browser checks passed for optional nationality, portrait upload via
 TUS, a pending-only receipt, private field editing, lost-save acknowledgement
 recovery without replay, and RTL layouts at desktop and 390x844.
 Database rollback checks retained no synthetic applicants. Integration RLS is
 enabled and both anonymous and signed-in browser read privileges are revoked.
 These checks are not proof of Google consent, 2 GiB live transfer or publication.
+
+The first consent return was rejected before exchanging any code. Safe production
+logs showed a start-to-return interval of approximately 43 minutes, beyond the
+10-minute state/cookie lifetime. Keep that boundary; expired or missing state
+now returns a fixed, non-sensitive reason and opens the review dialog automatically.
+Do not treat a completed Google consent screen as proof of stored connection.

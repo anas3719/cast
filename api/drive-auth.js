@@ -37,10 +37,14 @@ module.exports = async (req, res) => {
   }
   if (action === 'callback' && req.method === 'GET') {
     let phase = 'state';
+    let failure = 'failed';
     try {
-      const raw = (req.headers.cookie || '').split('; ').find(value => value.startsWith(`${COOKIE}=`))?.slice(COOKIE.length + 1);
+      const raw = (req.headers.cookie || '').split(';').map(value => value.trim())
+        .find(value => value.startsWith(`${COOKIE}=`))?.slice(COOKIE.length + 1);
+      if (!raw) { failure = 'expired-or-missing'; throw new Error('OAuth cookie missing'); }
       const flow = await unseal(raw, 'cast-drive-state');
       cookie(res, '', 0);
+      if (url.searchParams.get('error') === 'access_denied') failure = 'denied';
       if (url.searchParams.get('state') !== flow.state || url.searchParams.get('error') || !url.searchParams.get('code')) {
         throw new Error('Invalid OAuth state');
       }
@@ -55,10 +59,11 @@ module.exports = async (req, res) => {
       await drive.saveConnection(flow.authorization, protectedConnection);
       return redirect(res, `${RETURN_URL}#cast-drive=connected`);
     } catch (error) {
+      if (phase === 'state' && error.code === 'ERR_JWT_EXPIRED') failure = 'expired';
       const reason = ['invalid_grant', 'invalid_client', 'access_denied'].includes(error.code) ? error.code : 'failed';
-      console.warn('cast-drive-callback-failed', { phase, reason,
+      console.warn('cast-drive-callback-failed', { phase, reason, failure,
         status: Number.isInteger(error.status) ? error.status : null });
-      cookie(res, '', 0); return redirect(res, `${RETURN_URL}#cast-drive=failed`);
+      cookie(res, '', 0); return redirect(res, `${RETURN_URL}#cast-drive=failed&cast-drive-reason=${failure}`);
     }
   }
   return json(res, 404, { message: 'غير مسموح.' });

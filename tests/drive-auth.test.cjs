@@ -57,7 +57,7 @@ test('invalid callback state is cleaned and returns only a closed failure hint',
   const response = res();
   await handler({ url: '/api/drive-auth?action=callback&state=bad&code=secret', method: 'GET', headers: {} }, response);
   assert.equal(response.statusCode, 303);
-  assert.equal(response.headers.Location, `${ORIGIN}/cast/cast-admin.html#cast-drive=failed`);
+  assert.equal(response.headers.Location, `${ORIGIN}/cast/cast-admin.html#cast-drive=failed&cast-drive-reason=expired-or-missing`);
   assert.match(response.headers['Set-Cookie'], /Max-Age=0/);
 });
 test('valid callback stores only the encrypted limited connection and confirms the return', async () => {
@@ -107,8 +107,24 @@ test('missing Drive permission fails closed with diagnostics that contain no cre
     const response = res();
     await handler({ url: '/api/drive-auth?action=callback&state=expected&code=PRIVATE-CODE', method: 'GET',
       headers: { cookie: `__Host-cast-drive=${cookie}` } }, response);
-    assert.equal(response.headers.Location, `${ORIGIN}/cast/cast-admin.html#cast-drive=failed`);
-    assert.deepEqual(warnings, [['cast-drive-callback-failed', { phase: 'grant', reason: 'failed', status: null }]]);
+    assert.equal(response.headers.Location, `${ORIGIN}/cast/cast-admin.html#cast-drive=failed&cast-drive-reason=failed`);
+    assert.deepEqual(warnings, [['cast-drive-callback-failed', { phase: 'grant', reason: 'failed', failure: 'failed', status: null }]]);
     assert.ok(!JSON.stringify(warnings).includes('PRIVATE'));
   } finally { global.fetch = originalFetch; OAuth2Client.prototype.getToken = originalExchange; console.warn = originalWarn; }
+});
+test('expired state is explained without exchanging a code or extending session lifetime', async () => {
+  const originalFetch = global.fetch;
+  const originalWarn = console.warn;
+  let calls = 0;
+  global.fetch = async () => { ++calls; throw new Error('Must not exchange expired state'); };
+  console.warn = () => {};
+  try {
+    const expired = await seal({ state: 'expected', verifier: 'private-verifier', authorization: 'PRIVATE' }, 'cast-drive-state', '-1s');
+    const response = res();
+    await handler({ url: '/api/drive-auth?action=callback&state=expected&code=PRIVATE-CODE', method: 'GET',
+      headers: { cookie: `another=value;__Host-cast-drive=${expired}` } }, response);
+    assert.equal(calls, 0);
+    assert.equal(response.headers.Location, `${ORIGIN}/cast/cast-admin.html#cast-drive=failed&cast-drive-reason=expired`);
+    assert.match(response.headers['Set-Cookie'], /Max-Age=0/);
+  } finally { global.fetch = originalFetch; console.warn = originalWarn; }
 });

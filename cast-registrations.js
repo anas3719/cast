@@ -15,7 +15,9 @@
   const driveStatus = document.createElement('p');
   driveStatus.setAttribute('role', 'status');
   signIn.after(driveButton, driveStatus);
-  let driveReturn = new URLSearchParams(location.hash.slice(1)).get('cast-drive');
+  const driveFragment = new URLSearchParams(location.hash.slice(1));
+  let driveReturn = driveFragment.get('cast-drive');
+  const driveFailure = driveFragment.get('cast-drive-reason');
   if (driveReturn) history.replaceState(null, '', location.pathname + location.search);
   function leave() {
     if (writing) { status.textContent = 'انتظر حتى تكتمل عملية الحفظ.'; return false; }
@@ -26,7 +28,12 @@
     try {
       const state = await request('drive-status');
       driveStatus.textContent = state.connected ? 'ربط الدرايف محفوظ في الخدمة الخلفية' : 'لم يُربط الدرايف بعد';
-      if (driveReturn === 'failed') driveStatus.textContent = 'لم يكتمل الربط المحدود. لم يُفعّل النشر.';
+      if (driveReturn === 'failed') {
+        driveStatus.textContent = ['expired', 'expired-or-missing'].includes(driveFailure)
+          ? 'انتهت جلسة الربط أو لم تصل إلى الخدمة. اضغط ربط الدرايف وأكمل الموافقة خلال 10 دقائق في نفس تبويب Chrome.'
+          : driveFailure === 'denied' ? 'لم تُمنح صلاحية الدرايف. لم يُفعّل النشر.'
+            : 'لم يكتمل الربط المحدود. لم يُفعّل النشر.';
+      }
       else if (driveReturn === 'connected' && !state.connected) driveStatus.textContent = 'لم يتم تأكيد حفظ الربط بعد.';
       driveButton.textContent = state.connected ? 'إعادة ربط الدرايف' : 'ربط الدرايف';
       driveReturn = null;
@@ -192,4 +199,5 @@
   });
   dialog.addEventListener('close', () => { ++epoch; record = null; editor.replaceChildren(); list.replaceChildren(); });
   signIn.addEventListener('click', () => login.start());
+  if (driveReturn) { dialog.showModal(); load(); checkDrive(); }
 })();
