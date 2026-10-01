@@ -2,13 +2,14 @@
 
 Status (2026-10-01): rules, private runtime, resumable-upload form and private
 review editor implemented. Runtime and encrypted Drive-connection support are
-deployed, including the private review Pages UI. Anonymous intake stays closed.
+deployed, including the private review Pages UI. Protected anonymous intake was
+opened after owner-approved Turnstile setup and Production Google re-consent.
 Google client credentials are configured in the backend. Limited owner consent
 completed and encrypted connection persistence was verified on 2026-10-01.
 Durable approval/transfer and the private approval editor are implemented. The
-broker, worker, job schema and minute dispatcher are deployed. Bot protection,
-durable Google authorization and actual publication acceptance remain unfinished;
-anonymous intake stays closed and no feature-complete claim is made.
+broker, worker, job schema and minute dispatcher are deployed. Bot protection and
+same-scope Google Production authorization are configured. Actual end-to-end
+applicant publication and a full 2 GiB transfer remain unverified.
 Scope: anas3719/cast only. Do not modify the portfolio repository.
 
 ## Applicant Form
@@ -79,7 +80,7 @@ shared folder containing the applicant's contact record.
   Only organization billing/usage allowances are shared; client databases,
   storage buckets, project keys and project settings must not be touched.
 - Private bucket cast-registration-private, 2 GiB bucket-level limit.
-- Three private tables use RLS with no browser policies and explicit revocation
+- Five private tables use RLS with no browser policies and explicit revocation
   of anon/authenticated privileges; server-only service_role access is intended.
 - Live rollback tests passed for gender/age classification boundaries, rejecting
   missing Drive URLs, video portraits and oversized videos, and anonymous reads.
@@ -98,8 +99,9 @@ shared folder containing the applicant's contact record.
 - The web client was created and its saved callback was verified. Client ID and
   secret are server-only Vercel production variables; the local setup file is
   excluded from Git and deployment uploads. Live Drive health reports configured.
-  The owner is the sole Google test user. OAuth is still in Testing mode, so
-  long-lived operation must be resolved before final activation.
+  The owner approved conversion from Testing to Production on 2026-10-01 and
+  renewed consent with the same drive.file scope. The application backend still
+  restricts connection and review to its GitHub owner.
 - Durable approval jobs use private per-job capabilities, revision checks and
   expiring single-worker leases. Folder/file IDs, sealed resumable handles,
   acknowledged offsets and GitHub commit receipts persist before advancing.
@@ -132,8 +134,13 @@ These checks are not proof of 2 GiB live transfer or end-to-end publication.
 Production Vercel broker deployment dpl_453VTFJeh1Pq8uAzkYo7pUC4XJdu is Ready.
 Supabase cast-registration-work version 1 and cast-registration version 5 are
 Active. Invalid worker tickets and broker grants were rejected in live probes.
-Cloudflare login is awaiting the owner's authenticator code. No Turnstile secret
-is configured, and REGISTRATION_OPEN / APPROVAL_PIPELINE_READY remain unset.
+The owner completed Cloudflare two-factor authentication and specifically approved
+creation of the Managed widget for anas3719.github.io and storage of its secret in
+the dedicated cast project. TURNSTILE_SECRET, TURNSTILE_SITE_KEY,
+APPROVAL_PIPELINE_READY and REGISTRATION_OPEN are configured. The live availability
+response reports open=true, and the rendered widget showed successful verification.
+No credential value was included in the output or public repository. Pages build
+36829746406 deployed source d3b6c55 successfully, including the public privacy page.
 
 The first consent return was rejected before exchanging any code. Safe production
 logs showed a start-to-return interval of approximately 43 minutes, beyond the
@@ -146,10 +153,17 @@ The live private review dialog showed "ربط الدرايف محفوظ في ا�
 A server-side read of only id, connected_at and a boolean confirmed the
 encrypted google-drive connection was saved at 06:03:01.876 UTC. No token,
 authorization code or encrypted payload was read into the verification output.
-The anonymous availability endpoint still returned open=false and an empty
-siteKey; approval remains disabled. No applicant or public profile was created.
+At that initial milestone the anonymous availability endpoint returned open=false
+and an empty siteKey. No applicant or public profile was created by verification.
 
-Google OAuth remains External/Testing. The Drive refresh token therefore has
-the seven-day Testing limit; persistence is not proof of permanent authorization.
-Resolve the publishing configuration before final activation. Reference:
+Google was initially External/Testing, which imposes a seven-day refresh-token
+limit. On 2026-10-01 the owner explicitly approved Production conversion; the
+console showed In production, and fresh consent persisted at 07:30:26.757 UTC.
+Live owner health then verifies Google access rather than mere stored ciphertext.
+Production does not guarantee perpetual credentials; revocation or account/policy
+changes must still fail safely and request reconnection. Reference:
 https://developers.google.com/identity/protocols/oauth2#expiration
+
+Final live readback before delivery: zero registrations, zero approval jobs, zero
+private objects and one active dispatcher. The workflow is deployed and open,
+not qualified by a real applicant approval or a full-size provider transfer.
