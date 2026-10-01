@@ -2,5 +2,8 @@
   "buildCommand": "npm run build",
   "outputDirectory": "public-service",
   "regions": ["bom1"],
-  "functions": { "api/*.js": { "maxDuration": 60 } }
+  "functions": {
+    "api/registration-approval.js": { "maxDuration": 120 },
+    "api/*.js": { "maxDuration": 60 }
+  }
 }

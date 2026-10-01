@@ -44,7 +44,7 @@ test('new profiles follow permanent first profiles, preserve other fields, edits
   assert.throws(()=>updateCatalog(source,{...plan().profile,whatsapp:'+966500000000'}));
 });
 test('grant manifests and transport reject private fields, oversized files and SSRF',()=>{
-  assert.equal(CHUNK,2*1024*1024);
+  assert.equal(CHUNK,8*1024*1024);
   assert.equal(CHUNK%(256*1024),0);
   assert.equal(validatePlan(plan()).jobId,jobId);
   assert.throws(()=>validatePlan({...plan(),profile:{...plan().profile,whatsapp:'private'}}));
@@ -52,6 +52,7 @@ test('grant manifests and transport reject private fields, oversized files and S
   const file=plan().files[0];
   for(const url of ['http://localhost/','https://evil.example/a','https://vmnkdbceyqudcxddvljx.supabase.co/storage/v1/object/sign/other/'+file.path+'?token=x'])assert.throws(()=>storageUrl(url,file));
   assert.equal(storageUrl('https://vmnkdbceyqudcxddvljx.supabase.co/storage/v1/object/sign/cast-registration-private/'+file.path+'?token=x',file).includes(file.path),true);
+  assert.equal(new URL(storageUrl('https://vmnkdbceyqudcxddvljx.supabase.co/storage/v1/object/sign/cast-registration-private/'+file.path+'?token=x',file)).hostname,'vmnkdbceyqudcxddvljx.storage.supabase.co');
   assert.throws(()=>uploadUrl('https://evil.example/upload'));
   assert.equal(confirmedOffset(new Response(null,{status:308,headers:{range:'bytes=0-7'}}),20),8);
   assert.throws(()=>confirmedOffset(new Response(null,{status:308,headers:{range:'bytes=0-20'}}),20));
@@ -180,4 +181,25 @@ test('worker rejects wrong capability and stores commit through unknown checkpoi
   await pending;
   const recovery=calls.find(x=>x.args.failure);
   assert.equal(recovery.args.commit_id,commit);assert.equal(recovery.args.new_phase,4);
+});
+test('worker reuses one private source URL per file within a bounded transfer invocation',async()=>{
+  const {createApprovalWorker}=await import('../lib/registration-approval.mjs');
+  let signs=0,pending,offset=0;
+  const urls=[];
+  const file={id:fileId,slot:0,object_path:plan().files[0].path,declared_size:10,drive_upload_url:'sealed'};
+  const db={
+    from:()=>({select:()=>({eq:()=>({order:async()=>({data:[{...file,transferred_bytes:offset}]})})})}),
+    storage:{from:()=>({createSignedUrl:async(path,ttl)=>{assert.equal(ttl,120);signs++;return {data:{signedUrl:'private-synthetic-'+signs}};}})},
+    rpc:async(name,args)=> name==='cast_claim_approval'?{data:{id:jobId,registration_id:requestId,lease:jobId,phase:1,encrypted_grant:'sealed'}}:
+      name==='cast_checkpoint_approval'?(offset=args.transferred??offset,{data:null}):{data:null}
+  };
+  const worker=createApprovalWorker({db,waitUntil:p=>{pending=p;},fetcher:async(url,options)=>{
+    const body=JSON.parse(options.body);
+    if(body.action==='upload'){urls.push(body.sourceUrl);return Response.json({offset:offset+5,handle:'sealed'});}
+    if(body.action==='publish')return Response.json({commit});
+    return Response.json({live:true});
+  }});
+  await worker(new Request('https://example.com',{method:'POST',body:JSON.stringify({jobId,ticket:'a'.repeat(64)})}));
+  await pending;
+  assert.equal(signs,1);assert.deepEqual(urls,['private-synthetic-1','private-synthetic-1']);assert.equal(offset,10);
 });
