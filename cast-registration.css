@@ -53,6 +53,12 @@
 .registration-review-media img, .registration-review-media video { width: 100%; aspect-ratio: 3 / 4; object-fit: contain; background: var(--surface); border-radius: 4px; }
 .registration-review-media a { overflow-wrap: anywhere; color: var(--accent); }
 .registration-private-label { color: var(--gold); }
+.directory-heading { flex-wrap: wrap; gap: 12px; }
+.directory-actions { flex-wrap: wrap; gap: 8px; }
+.registration-approval-confirm { padding: 24px; max-height: calc(100dvh - 32px); }
+.registration-approval-confirm h2 { margin-block: 0 14px; font-size: 22px; line-height: 1.5; }
+.registration-approval-confirm p { line-height: 1.7; overflow-wrap: anywhere; }
+.registration-approval-confirm .button { min-height: 44px; }
 @media (max-width: 600px) {
   .registration-main { padding-inline: 18px; }
   .registration-grid, .registration-review-layout { grid-template-columns: minmax(0, 1fr); }

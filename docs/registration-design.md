@@ -1,11 +1,14 @@
 # Cast Registration: Approved Requirements
 
-Status (2026-09-30): rules, private runtime, resumable-upload form and private
+Status (2026-10-01): rules, private runtime, resumable-upload form and private
 review editor implemented. Runtime and encrypted Drive-connection support are
 deployed, including the private review Pages UI. Anonymous intake stays closed.
-Google client credentials are configured in the backend; owner consent,
-durable approval/transfer, bot protection
-and actual publication acceptance remain unfinished; no feature-complete claim.
+Google client credentials are configured in the backend. Limited owner consent
+completed and encrypted connection persistence was verified on 2026-10-01.
+Durable approval/transfer and the private approval editor are implemented. The
+broker, worker, job schema and minute dispatcher are deployed. Bot protection,
+durable Google authorization and actual publication acceptance remain unfinished;
+anonymous intake stays closed and no feature-complete claim is made.
 Scope: anas3719/cast only. Do not modify the portfolio repository.
 
 ## Applicant Form
@@ -81,9 +84,11 @@ shared folder containing the applicant's contact record.
 - Live rollback tests passed for gender/age classification boundaries, rejecting
   missing Drive URLs, video portraits and oversized videos, and anonymous reads.
   No synthetic registration records were retained.
-- Security advisor reports only informational RLS-enabled-with-no-policy notices
-  for these deliberately server-only tables; do not add browser access to silence
-  that notice.
+- Security advisor reports informational RLS-enabled-with-no-policy notices for
+  the deliberately server-only tables; do not add browser access to silence them.
+  It also reports pg_net installed in public. Its request API is in the net
+  schema and only the fixed server-side job dispatcher uses it. This deployment
+  warning remains tracked rather than changing extension system metadata.
 - Owner approved an independent app-created root named
   "الكاست - التسجيلات المعتمدة", containing the six cast categories. No existing
   customer folders need to be selected or accessed. Use only drive.file scope.
@@ -95,7 +100,15 @@ shared folder containing the applicant's contact record.
   excluded from Git and deployment uploads. Live Drive health reports configured.
   The owner is the sole Google test user. OAuth is still in Testing mode, so
   long-lived operation must be resolved before final activation.
-- Configure durable approval/transfer jobs, signed-upload protection and expiry.
+- Durable approval jobs use private per-job capabilities, revision checks and
+  expiring single-worker leases. Folder/file IDs, sealed resumable handles,
+  acknowledged offsets and GitHub commit receipts persist before advancing.
+  The dispatcher resumes bounded batches after the admin tab closes. A complete
+  byte range is not completion without finalized Drive metadata. Git publication
+  retries reconcile the current catalog and verify the live public projection.
+- Configure bot protection and long-lived same-scope Drive authorization before
+  opening intake. Approved source-copy retention and expired-upload cleanup
+  remain unresolved; the upload reservation budget must not be ignored.
 - End-to-end staging test: submit -> reload admin -> edit -> approve -> public
   profile; verify contacts are absent from every public output and private media
   is inaccessible without a signed URL. Test retry, two simultaneous approvals,
@@ -103,16 +116,40 @@ shared folder containing the applicant's contact record.
 
 ## Current Checks
 
-Run `npm test`: 32 focused Node tests and the existing admin-auth recovery check.
+Run `npm test`: 42 focused Node tests and the existing admin-auth recovery check.
 Synthetic browser checks passed for optional nationality, portrait upload via
 TUS, a pending-only receipt, private field editing, lost-save acknowledgement
 recovery without replay, and RTL layouts at desktop and 390x844.
 Database rollback checks retained no synthetic applicants. Integration RLS is
 enabled and both anonymous and signed-in browser read privileges are revoked.
-These checks are not proof of Google consent, 2 GiB live transfer or publication.
+Additional rollback checks passed for revision races, exclusive/stale leases,
+phase bounds, publication receipts and browser-role restrictions. Zero synthetic
+applicants remained after rollback. Synthetic approval UI checks passed for a
+lost approval acknowledgement and read-only recovery without repeating approval;
+the 390x844 viewport measured page width 390 and dialog width 352.
+These checks are not proof of 2 GiB live transfer or end-to-end publication.
+
+Production Vercel broker deployment dpl_453VTFJeh1Pq8uAzkYo7pUC4XJdu is Ready.
+Supabase cast-registration-work version 1 and cast-registration version 5 are
+Active. Invalid worker tickets and broker grants were rejected in live probes.
+Cloudflare login is awaiting the owner's authenticator code. No Turnstile secret
+is configured, and REGISTRATION_OPEN / APPROVAL_PIPELINE_READY remain unset.
 
 The first consent return was rejected before exchanging any code. Safe production
 logs showed a start-to-return interval of approximately 43 minutes, beyond the
 10-minute state/cookie lifetime. Keep that boundary; expired or missing state
 now returns a fixed, non-sensitive reason and opens the review dialog automatically.
 Do not treat a completed Google consent screen as proof of stored connection.
+
+On 2026-10-01 a fresh same-scope consent completed within the state lifetime.
+The live private review dialog showed "ربط الدرايف محفوظ في الخدمة الخلفية".
+A server-side read of only id, connected_at and a boolean confirmed the
+encrypted google-drive connection was saved at 06:03:01.876 UTC. No token,
+authorization code or encrypted payload was read into the verification output.
+The anonymous availability endpoint still returned open=false and an empty
+siteKey; approval remains disabled. No applicant or public profile was created.
+
+Google OAuth remains External/Testing. The Drive refresh token therefore has
+the seven-day Testing limit; persistence is not proof of permanent authorization.
+Resolve the publishing configuration before final activation. Reference:
+https://developers.google.com/identity/protocols/oauth2#expiration

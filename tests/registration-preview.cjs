@@ -4,11 +4,12 @@ const fs = require('node:fs');
 const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const id = '00000000-0000-4000-8000-000000000000';
-let created, failNextEdit = false;
+let created, failNextEdit = false, failNextApproval=false;
 const uploads = new Map();
 const record = { id, profileId: 'registration-' + id, revision: 1, status: 'pending',
   profile: { name: 'ملف تجريبي', gender: 'female', age: 26, height: 165, weight: 55, nationality: '', speaking: 'yes', category: 'women' },
-  privateContact: { whatsapp: '+966500000000' }, ownerNote: '', works: { mode: 'drive', folderUrl: 'https://drive.google.com/drive/folders/SyntheticFolderOnly123', reviewedCount: null, accessible: false }, attachments: [] };
+  privateContact: { whatsapp: '+966500000000' }, ownerNote: '', works: { mode: 'drive', folderUrl: 'https://drive.google.com/drive/folders/SyntheticFolderOnly123', reviewedCount: 2, accessible: true },
+  attachments: [{name:'Synthetic portrait.png',type:'image/png',size:1024,role:'portrait',verified:true}] };
 const base = 'http://127.0.0.1:4187';
 const api = 'https://vmnkdbceyqudcxddvljx.supabase.co/functions/v1/cast-registration';
 const json = (res, data) => { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(data)); };
@@ -26,13 +27,20 @@ http.createServer(async (req, res) => {
     let raw = ''; for await (const chunk of req) raw += chunk;
     const body = JSON.parse(raw);
     if (body.action === 'availability') return json(res, { open: true, siteKey: 'synthetic' });
-    if (body.action === 'list') return json(res, { records: [{ id, name: record.profile.name, category: 'women', status: 'pending', revision: record.revision }] });
+    if (body.action === 'list') return json(res, { records: [{ id, name: record.profile.name, category: 'women', status: record.status, revision: record.revision }] });
     if (body.action === 'detail') return json(res, { record });
-    if (body.action === 'drive-status') return json(res, { connected: false, connectedAt: null });
+    if (body.action === 'drive-status') return json(res, { connected: true, connectedAt: '2026-10-01T00:00:00Z',approvalReady:true });
+    if (body.action === 'approve') {
+      record.status='approving';record.revision++;record.approval={status:'queued',phase:1};
+      if(failNextApproval){failNextApproval=false;res.writeHead(503,{'Content-Type':'application/json'});return res.end(JSON.stringify({message:'انقطع تأكيد الاعتماد التجريبي'}));}
+      return json(res,{id,status:'approving'});
+    }
     if (body.action === 'edit') {
       record.revision++;
       for (const key of ['name', 'gender', 'age', 'height', 'weight', 'nationality', 'speaking']) record.profile[key] = body.fields[key];
       record.privateContact.whatsapp = body.fields.whatsapp;
+      record.works.reviewedCount=body.fields.reviewedCount;record.works.accessible=body.fields.accessible;
+      record.ownerNote=body.fields.ownerNote;
       if (failNextEdit) { failNextEdit = false; res.writeHead(503, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify({ message: 'انقطع تأكيد الحفظ التجريبي' })); }
       return json(res, { record });
     }
@@ -57,6 +65,8 @@ http.createServer(async (req, res) => {
     .replace('https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit', base + '/__fixture/challenge.js'));
   if (filename.endsWith('cast-admin.html')) {
     failNextEdit = url.searchParams.get('fixture') === 'uncertain';
+    failNextApproval=url.searchParams.get('fixture')==='approval-uncertain';
+    record.status='pending';delete record.approval;
     content = Buffer.from(content.toString().replace(/cast-admin-login\.js[^" ]*/, '__fixture/login.js'));
   }
   const types = { '.html': 'text/html', '.js': 'application/javascript', '.css': 'text/css', '.jpg': 'image/jpeg', '.png': 'image/png' };

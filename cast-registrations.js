@@ -9,6 +9,12 @@
   const rules = window.castRegistrationRules;
   const statuses = { pending: 'بانتظار المراجعة', approving: 'جاري الاعتماد', approved: 'معتمد', rejected: 'مرفوض' };
   let record, epoch = 0, dirty = false, writing = false, uncertain = false;
+  let pipelineReady=false,refreshTimer;
+  function canApprove(value) {
+    return pipelineReady && ['pending','approved','approving'].includes(value.status)
+      && (value.status!=='approving' || ['needs_grant','needs_owner'].includes(value.approval?.status))
+      && rules.reviewReadiness({...value,status:value.status==='approving'?'pending':value.status}).valid;
+  }
   const driveButton = document.createElement('button');
   driveButton.type = 'button'; driveButton.className = 'button button-secondary';
   driveButton.textContent = 'ربط الدرايف';
@@ -27,6 +33,9 @@
   async function checkDrive() {
     try {
       const state = await request('drive-status');
+      pipelineReady=state.connected && state.approvalReady;
+      const approve=document.querySelector('#registration-approve');
+      if(approve && record && !writing && !uncertain)approve.disabled=!canApprove(record);
       driveStatus.textContent = state.connected ? 'ربط الدرايف محفوظ في الخدمة الخلفية' : 'لم يُربط الدرايف بعد';
       if (driveReturn === 'failed') {
         driveStatus.textContent = ['expired', 'expired-or-missing'].includes(driveFailure)
@@ -50,6 +59,22 @@
     if (className) element.className = className;
     return element;
   };
+  function confirmApproval(name) {
+    return new Promise(resolve=>{
+      const prompt=make('dialog',undefined,'admin-dialog registration-approval-confirm');
+      prompt.setAttribute('aria-labelledby','approval-confirm-title');
+      const title=make('h2','اعتماد البروفايل');title.id='approval-confirm-title';
+      prompt.append(title,make('p','نشر '+name+' وصورته وأعماله. رقم الواتساب يبقى خاصًا بالإدارة.'));
+      const actions=make('div',undefined,'registration-actions');
+      const approve=make('button','اعتماد ونشر الآن','button button-primary');approve.type='button';
+      const cancel=make('button','إلغاء','button button-secondary');cancel.type='button';
+      let settled=false;
+      const done=value=>{if(settled)return;settled=true;prompt.close();prompt.remove();resolve(value);};
+      approve.addEventListener('click',()=>done(true));cancel.addEventListener('click',()=>done(false));
+      prompt.addEventListener('cancel',event=>{event.preventDefault();done(false);});
+      actions.append(approve,cancel);prompt.append(actions);document.body.append(prompt);prompt.showModal();
+    });
+  }
   async function request(action, body = {}) {
     if (!login?.connected) {
       signIn.hidden = false;
@@ -76,13 +101,23 @@
     return input;
   }
   function render(value) {
+    clearTimeout(refreshTimer);
     record = value;
     dirty = false; uncertain = false;
     editor.replaceChildren();
     list.querySelectorAll('button').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.id === value.id)));
+    const selected=list.querySelector('button[data-id="'+value.id+'"]');
+    if(selected) {
+      selected.querySelector('strong').textContent=value.profile.name;
+      selected.querySelector('small').textContent=(rules.categories[value.profile.category]||'')+' · '+statuses[value.status];
+    }
     const form = make('form', undefined, 'registration-review-form');
     form.noValidate = true;
     form.append(make('h3', value.profile.name), make('p', statuses[value.status] || value.status));
+    if(value.status==='approving') {
+      const phases=['تجهيز مجلد الدرايف','نقل الأعمال','تجهيز روابط الأعمال','نشر البروفايل','بانتظار ظهور البروفايل على الموقع'];
+      form.append(make('p',value.approval?.status==='needs_owner'?'يلزم استكمال النشر من حساب الإدارة':phases[value.approval?.phase||0]));
+    }
     const grid = make('div', undefined, 'registration-grid');
     inputField(grid, 'name', 'الاسم', value.profile.name);
     inputField(grid, 'gender', 'الجنس', value.profile.gender, [['male', 'ذكر'], ['female', 'أنثى']]);
@@ -125,15 +160,40 @@
     const actions = make('div', undefined, 'registration-actions');
     const save = make('button', undefined, 'button button-primary'); save.type = 'submit';
     const icon = make('i'); icon.dataset.lucide = 'save'; icon.setAttribute('aria-hidden', 'true'); save.append(icon, make('span', 'حفظ البيانات'));
-    const approve = make('button', 'اعتماد ونشر', 'button button-secondary'); approve.type = 'button'; approve.disabled = true;
-    approve.title = 'يُفعّل بعد اكتمال ربط الدرايف والنشر';
+    const approve = make('button', value.status==='approving'?'استكمال النشر':'اعتماد ونشر', 'button button-secondary');
+    approve.id='registration-approve';approve.type = 'button'; approve.disabled = !canApprove(value);
+    approve.title = pipelineReady?'اعتماد البيانات والأعمال ونشر البروفايل':'النشر قيد التجهيز';
     const reject = make('button', 'رفض الطلب', 'button button-danger'); reject.type = 'button'; reject.disabled = value.status !== 'pending';
     save.disabled = !['pending', 'approved'].includes(value.status);
     actions.append(save, approve, reject); form.append(actions); editor.append(form);
+    if(value.status==='approving') {
+      form.querySelectorAll('input,select,textarea').forEach(input=>{input.disabled=true;});
+      refreshTimer=setTimeout(async()=>{
+        if(!dialog.open || writing || uncertain || dirty || record?.id!==value.id)return;
+        try {const current=await request('detail',{id:value.id});if(dialog.open && record?.id===value.id && !writing && !dirty)render(current.record);}
+        catch {status.textContent='تعذر تحديث حالة النشر مؤقتًا.';}
+      },8000);
+    }
     window.lucide?.createIcons();
     let saving = false;
-    form.addEventListener('input', () => { dirty = true; });
-    form.addEventListener('change', () => { dirty = true; });
+    form.addEventListener('input', () => { dirty = true;approve.disabled=true; });
+    form.addEventListener('change', () => { dirty = true;approve.disabled=true; });
+    approve.addEventListener('click',async()=>{
+      if(writing || uncertain || dirty || !canApprove(value))return;
+      if(!await confirmApproval(value.profile.name))return;
+      writing=true;save.disabled=true;approve.disabled=true;reject.disabled=true;
+      try {
+        await request('approve',{id:value.id,revision:value.revision});
+        const current=await request('detail',{id:value.id});render(current.record);
+        status.textContent='بدأ الاعتماد في الخلفية.';
+      } catch(error) {
+        uncertain=true;message.textContent=error.message+' تحقق من حالة الطلب قبل إعادة المحاولة.';
+        const verify=make('button','التحقق من الطلب','button button-secondary');verify.type='button';
+        verify.addEventListener('click',async()=>{verify.disabled=true;
+          try{const current=await request('detail',{id:value.id});render(current.record);}
+          catch(failure){message.textContent=failure.message;verify.disabled=false;}});actions.append(verify);
+      } finally {writing=false;}
+    });
     form.addEventListener('submit', async event => {
       event.preventDefault(); if (saving || uncertain) return;
       const fields = Object.fromEntries(new FormData(form));
@@ -197,7 +257,7 @@
   window.addEventListener('beforeunload', event => {
     if (dirty || writing || uncertain) { event.preventDefault(); event.returnValue = ''; }
   });
-  dialog.addEventListener('close', () => { ++epoch; record = null; editor.replaceChildren(); list.replaceChildren(); });
+  dialog.addEventListener('close', () => { clearTimeout(refreshTimer);++epoch; record = null; editor.replaceChildren(); list.replaceChildren(); });
   signIn.addEventListener('click', () => login.start());
   if (driveReturn) { dialog.showModal(); load(); checkDrive(); }
 })();

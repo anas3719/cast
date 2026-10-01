@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="cast-admin.css?v=20260930" />
-  <link rel="stylesheet" href="cast-registration.css?v=20260930" />
+  <link rel="stylesheet" href="cast-registration.css?v=20261001" />
 </head>
 <body class="registration-page">
   <header class="registration-header">
@@ -48,6 +48,7 @@
         <label id="drive-works" class="field" hidden><span>رابط مجلد الأعمال في Google Drive</span><input name="folderUrl" type="url" dir="ltr" placeholder="https://drive.google.com/drive/folders/…" aria-describedby="drive-count error-folderUrl" /><small id="drive-count">مجلد متاح للمشاهدة، فيه من عملين إلى 10 أعمال.</small><small id="error-folderUrl" class="registration-error"></small></label>
       </section>
       <div id="security-challenge"></div>
+      <p class="registration-notice">بإرسال الطلب، تتيح للإدارة مراجعة بياناتك وصورتك وأعمالك، ونشر البروفايل والأعمال بعد الاعتماد. رقم الواتساب خاص بالإدارة. <a href="cast-privacy.html">الخصوصية</a></p>
       <div class="registration-progress" hidden><label for="upload-progress" id="progress-label">رفع المرفقات</label><progress id="upload-progress" max="100" value="0"></progress></div>
       <div id="submission-error" class="registration-error" role="alert" tabindex="-1"></div>
       <div class="registration-actions"><button id="submit-registration" type="submit" class="button button-primary" disabled><i data-lucide="send" aria-hidden="true"></i><span>إرسال الطلب</span></button><button id="cancel-upload" type="button" class="button button-secondary" hidden>إيقاف الرفع</button></div>
