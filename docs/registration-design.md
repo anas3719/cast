@@ -10,7 +10,8 @@ Durable approval/transfer and the private approval editor are implemented. The
 broker, worker, job schema and minute dispatcher are deployed. Bot protection and
 same-scope Google Production authorization are configured. Synthetic small-media
 publication, post-approval edits, Drive-link publication and rejection passed live.
-Maximum-size Drive transfer qualification remains in progress.
+The synthetic 2 GiB upload, resumable Drive transfer and deployed publication also
+passed; this is transport qualification, not a natural 2 GiB video's playback test.
 Scope: anas3719/cast only. Do not modify the portfolio repository.
 
 ## Applicant Form
@@ -217,3 +218,12 @@ access stay unchanged; no new all-bucket S3 credential is created.
 
 References: https://supabase.com/docs/guides/storage/s3/authentication and
 https://supabase.com/docs/guides/storage/s3/compatibility
+
+On 2026-10-01 the full-size job reached phase 5 / done and its private request
+became approved. Independent Google Drive metadata returned video/mp4 and
+2,147,483,648 bytes. The deployed men page displayed the synthetic profile and
+its folder link; the associated portrait and second work also finished transfer.
+The artificial video used a valid short clip plus padding to exercise exact-size
+transport. Do not represent this as real-device or natural long-video playback.
+The public cleanup restores all 77 pre-test cast records and their ordering,
+without changing the separate photographer catalog or real-person media.
