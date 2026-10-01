@@ -95,3 +95,52 @@ test('signature checks reject renamed unsupported files and distinguish images f
   assert.equal(privateRecord.privateContact.whatsapp, '+966500000000');
   assert.ok(!JSON.stringify(privateRecord).includes('secret'));
 });
+
+test('signed anonymous uploads use the signature-only TUS route without exposing server credentials', async () => {
+  const { createRegistrationHandler } = await import('../lib/registration-handler.mjs');
+  const id = '00000000-0000-4000-8000-000000000000';
+  const file = { slot: 0, object_path: id + '/0/object', mime_type: 'image/png', declared_size: 200 };
+  const db = {
+    from(table) {
+      const query = { select: () => query, eq: () => query,
+        maybeSingle: async () => ({ data: { id, status: 'uploading', upload_expires_at: new Date(Date.now() + 60000).toISOString() } }),
+        order: async () => ({ data: [file] }) };
+      return query;
+    },
+    storage: { from: bucket => {
+      assert.equal(bucket, 'cast-registration-private');
+      return { createSignedUploadUrl: async (object, options) => {
+        assert.equal(object, file.object_path); assert.equal(options.upsert, false);
+        return { data: { token: 'synthetic-object-token' } };
+      } };
+    } },
+  };
+  const handler = createRegistrationHandler({ db, rules,
+    env: name => name === 'SUPABASE_URL' ? 'https://vmnkdbceyqudcxddvljx.supabase.co' : '' });
+  const request = req({ action: 'uploads', id });
+  request.headers.set('Authorization', 'Bearer ' + 'a'.repeat(64));
+  const result = await handler(request); assert.equal(result.status, 200);
+  const data = await result.json();
+  assert.equal(data.endpoint, 'https://vmnkdbceyqudcxddvljx.storage.supabase.co/storage/v1/upload/resumable/sign');
+  assert.deepEqual(Object.keys(data).sort(), ['bucket', 'endpoint', 'uploads']);
+  assert.deepEqual(data.uploads, [{ slot: 0, objectPath: file.object_path, token: 'synthetic-object-token', type: 'image/png', size: 200 }]);
+});
+
+test('registration retry identity excludes rotating challenge fields and preserves applicant fields', () => {
+  const fs = require('node:fs'), vm = require('node:vm'), acorn = require('acorn');
+  const source = fs.readFileSync('cast-register.js', 'utf8');
+  const wrapper = acorn.parse(source, { ecmaVersion: 'latest' }).body[0].expression.callee;
+  const fieldsFunction = wrapper.body.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'fields');
+  let challenge = 'first-proof';
+  const applicant = { name: 'Synthetic', gender: 'female', age: '50', height: '170', weight: '70', nationality: '',
+    speaking: 'no', whatsapp: '+12025550123', worksMode: 'drive', folderUrl: 'https://drive.google.com/drive/folders/SyntheticFolderOnly123' };
+  class FormData {
+    constructor() { this.values = { ...applicant, 'cf-turnstile-response': challenge, injected: 'not-an-applicant-field' }; }
+    get(key) { return this.values[key] ?? null; }
+    [Symbol.iterator]() { return Object.entries(this.values)[Symbol.iterator](); }
+  }
+  const read = vm.runInNewContext('(' + source.slice(fieldsFunction.start, fieldsFunction.end) + ')', { FormData, form: {} });
+  const first = JSON.stringify(read()); challenge = 'renewed-proof';
+  assert.equal(JSON.stringify(read()), first);
+  assert.deepEqual(JSON.parse(first), applicant);
+});

@@ -24,7 +24,12 @@
     return data;
   }
 
-  function fields() { return Object.fromEntries(new FormData(form)); }
+  function fields() {
+    const data = new FormData(form);
+    // Challenge tokens rotate independently of the applicant's retry identity.
+    return Object.fromEntries(['name', 'gender', 'age', 'height', 'weight', 'nationality',
+      'speaking', 'whatsapp', 'worksMode', 'folderUrl'].map(key => [key, data.get(key) || '']));
+  }
   function selection() {
     const data = fields();
     const chosen = [portrait.files[0], ...(data.worksMode === 'upload' ? [...works.files] : [])].filter(Boolean);
