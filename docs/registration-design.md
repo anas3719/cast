@@ -227,3 +227,17 @@ The artificial video used a valid short clip plus padding to exercise exact-size
 transport. Do not represent this as real-device or natural long-video playback.
 The public cleanup restores all 77 pre-test cast records and their ordering,
 without changing the separate photographer catalog or real-person media.
+
+Post-trial cleanup verified zero private registrations, jobs, file manifests,
+events and Storage objects. Only the four known synthetic requests were expired
+for the guarded cleanup worker; approved/rejected real requests were not targeted.
+The three synthetic Drive person folders were moved to recoverable Trash, not
+permanently purged. The local 2 GiB fixture was removed after its exact path and
+size were checked. Live catalog data compares equal to the pre-trial 77 records,
+and the unchanged two-photographer catalog gives 79 total admin profiles.
+Both the minute approval dispatcher and approved hourly cleanup remain active.
+Drive authorization remains stored. All 54 tests and auth recovery checks pass.
+Fresh Chrome review at 390x844 measured a 352px dialog with no horizontal overflow;
+the registration form and desktop views were also rendered and inspected.
+Physical iOS/Android devices, Safari, load testing and natural long-video playback
+were not exercised. Do not call this exhaustive production or security assurance.
