@@ -71,6 +71,7 @@ test('resume probes server offset and bounds chunk length instead of trusting st
   const handle=await seal({jobId,fileId,url:'https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&upload_id=private'},'cast-drive-upload','7d');
   let sent=0;
   const service=createApprovalService({makeClient,fetcher:async(url,options)=>{
+    if(url.startsWith('https://www.googleapis.com/')) assert.equal(options.redirect,'manual');
     if(url.includes('/drive/v3/files/'+fileId+'?'))return sent?Response.json({id:fileId,size:CHUNK+7,mimeType:'image/jpeg',
       parents:[value.folderId],appProperties:{anasCastRegistration:requestId}}):new Response(null,{status:404});
     if(url.includes('.supabase.co/')){

@@ -11,6 +11,7 @@ module.exports=async(req,res)=>{
     return json(res,200,result);
   } catch(e) {
     const code=['connection','retry','conflict','expired'].includes(e.code)?e.code:'retry';
+    console.warn('cast-approval-failure',{code,name:['TypeError','Error','TimeoutError'].includes(e.name)?e.name:'Other'});
     return json(res,code==='expired'||code==='connection'?401:503,{code});
   }
 };

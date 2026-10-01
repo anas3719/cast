@@ -124,6 +124,14 @@ test('signed anonymous uploads use the signature-only TUS route without exposing
   assert.equal(data.endpoint, 'https://vmnkdbceyqudcxddvljx.storage.supabase.co/storage/v1/upload/resumable/sign');
   assert.deepEqual(Object.keys(data).sort(), ['bucket', 'endpoint', 'uploads']);
   assert.deepEqual(data.uploads, [{ slot: 0, objectPath: file.object_path, token: 'synthetic-object-token', type: 'image/png', size: 200 }]);
+  const retry = req({ action: 'uploads', id, slots: [] });
+  retry.headers.set('Authorization', 'Bearer ' + 'a'.repeat(64));
+  assert.deepEqual((await (await handler(retry)).json()).uploads, []);
+  for (const slots of [[1], [0, 0], ['0']]) {
+    const invalid = req({ action: 'uploads', id, slots });
+    invalid.headers.set('Authorization', 'Bearer ' + 'a'.repeat(64));
+    assert.equal((await handler(invalid)).status, 400);
+  }
 });
 
 test('registration retry identity excludes rotating challenge fields and preserves applicant fields', () => {

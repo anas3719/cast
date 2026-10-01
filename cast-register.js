@@ -174,8 +174,9 @@
         attempt.created = true;
       }
       if (stopped) throw new Error('توقف الرفع. أعد المحاولة.');
-      const config = await request('uploads', { id: attempt.id }, attempt.ticket);
-      let done = 0;
+      const slots = selected.chosen.map((_, index) => index).filter(index => !attempt.completed.has(index));
+      const config = await request('uploads', { id: attempt.id, slots }, attempt.ticket);
+      let done = selected.chosen.reduce((sum, file, index) => sum + (attempt.completed.has(index) ? file.size : 0), 0);
       const total = selected.chosen.reduce((sum, file) => sum + file.size, 0);
       for (const signed of config.uploads) {
         if (!attempt.completed.has(signed.slot)) {
