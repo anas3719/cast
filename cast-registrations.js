@@ -100,6 +100,22 @@
     label.append(input); parent.append(label);
     return input;
   }
+  function queueRefresh(value) {
+    clearTimeout(refreshTimer);
+    refreshTimer=setTimeout(async()=>{
+      if(!dialog.open || writing || uncertain || dirty || record?.id!==value.id)return;
+      try {
+        const current=(await request('detail',{id:value.id})).record;
+        if(!dialog.open || record?.id!==value.id || writing || uncertain || dirty)return;
+        if(current.status!==value.status || current.revision!==value.revision
+          || current.approval?.phase!==value.approval?.phase || current.approval?.status!==value.approval?.status)render(current);
+        else queueRefresh(value);
+      } catch {
+        status.textContent='تعذر تحديث حالة النشر مؤقتًا. ستتم إعادة المحاولة.';
+        queueRefresh(value);
+      }
+    },8000);
+  }
   function render(value) {
     clearTimeout(refreshTimer);
     record = value;
@@ -148,7 +164,7 @@
         const image = make('img'); image.src = file.url; image.alt = file.role === 'portrait' ? 'صورة البروفايل' : file.name;
         image.referrerPolicy = 'no-referrer'; link.append(image);
       } else {
-        const video = make('video'); video.src = file.url; video.controls = true; video.preload = 'metadata'; media.append(video);
+        const video = make('video'); video.src = file.url; video.controls = true; video.preload = 'none'; media.append(video);
       }
       link.append(make('span', file.role === 'portrait' ? 'صورة البروفايل' : file.name)); media.append(link);
     }
@@ -168,16 +184,7 @@
     actions.append(save, approve, reject); form.append(actions); editor.append(form);
     if(value.status==='approving') {
       form.querySelectorAll('input,select,textarea').forEach(input=>{input.disabled=true;});
-      refreshTimer=setTimeout(async()=>{
-        if(!dialog.open || writing || uncertain || dirty || record?.id!==value.id)return;
-        try {const current=await request('detail',{id:value.id});if(dialog.open && record?.id===value.id && !writing && !dirty)render(current.record);}
-        catch {
-          status.textContent='تعذر تحديث حالة النشر مؤقتًا. ستتم إعادة المحاولة.';
-          refreshTimer=setTimeout(()=>{
-            if(dialog.open && record?.id===value.id && !writing && !uncertain && !dirty)render(value);
-          },8000);
-        }
-      },8000);
+      queueRefresh(value);
     }
     window.lucide?.createIcons();
     let saving = false;

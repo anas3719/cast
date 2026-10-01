@@ -203,3 +203,20 @@ test('worker reuses one private source URL per file within a bounded transfer in
   await pending;
   assert.equal(signs,1);assert.deepEqual(urls,['private-synthetic-1','private-synthetic-1']);assert.equal(offset,10);
 });
+test('review polling preserves media nodes until status or revision changes and retries read failures',async()=>{
+  const source=fs.readFileSync('cast-registrations.js','utf8');
+  const tree=require('acorn').parse(source,{ecmaVersion:2024});
+  const fn=tree.body[0].expression.callee.body.body.find(node=>node.type==='FunctionDeclaration' && node.id.name==='queueRefresh');
+  assert.ok(fn);
+  const value={id:requestId,revision:1,status:'approving',approval:{phase:1,status:'running'}};
+  let timer,renders=0,reply={...value,attachments:[{url:'rotated-private-url'}]},failed=false;
+  const context={dialog:{open:true},writing:false,uncertain:false,dirty:false,record:value,status:{},
+    clearTimeout(){},setTimeout(callback,delay){assert.equal(delay,8000);timer=callback;},
+    request:async()=>{if(failed)throw new Error('temporary');return {record:reply};},render(){renders++;}};
+  require('node:vm').runInNewContext(source.slice(fn.start,fn.end)+';queueRefresh(record);',context);
+  await timer();assert.equal(renders,0);
+  failed=true;await timer();assert.equal(renders,0);assert.ok(context.status.textContent);
+  failed=false;reply={...value,status:'approved'};await timer();assert.equal(renders,1);
+  context.dirty=true;await timer();assert.equal(renders,1);
+  assert.ok(source.includes("video.preload = 'none'"));
+});
