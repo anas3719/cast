@@ -44,6 +44,8 @@ test('new profiles follow permanent first profiles, preserve other fields, edits
   assert.throws(()=>updateCatalog(source,{...plan().profile,whatsapp:'+966500000000'}));
 });
 test('grant manifests and transport reject private fields, oversized files and SSRF',()=>{
+  assert.equal(CHUNK,2*1024*1024);
+  assert.equal(CHUNK%(256*1024),0);
   assert.equal(validatePlan(plan()).jobId,jobId);
   assert.throws(()=>validatePlan({...plan(),profile:{...plan().profile,whatsapp:'private'}}));
   const large=plan();large.files[0].size=2147483649;assert.throws(()=>validatePlan(large));
