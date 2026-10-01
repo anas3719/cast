@@ -215,6 +215,7 @@ test('review polling preserves media nodes until status or revision changes and 
     request:async()=>{if(failed)throw new Error('temporary');return {record:reply};},render(){renders++;}};
   require('node:vm').runInNewContext(source.slice(fn.start,fn.end)+';queueRefresh(record);',context);
   await timer();assert.equal(renders,0);
+  reply={...value,approval:{phase:1,status:'queued'}};await timer();assert.equal(renders,0);
   failed=true;await timer();assert.equal(renders,0);assert.ok(context.status.textContent);
   failed=false;reply={...value,status:'approved'};await timer();assert.equal(renders,1);
   context.dirty=true;await timer();assert.equal(renders,1);

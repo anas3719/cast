@@ -107,8 +107,9 @@
       try {
         const current=(await request('detail',{id:value.id})).record;
         if(!dialog.open || record?.id!==value.id || writing || uncertain || dirty)return;
+        const actionable=item=>['needs_owner','needs_grant'].includes(item.approval?.status)?item.approval.status:null;
         if(current.status!==value.status || current.revision!==value.revision
-          || current.approval?.phase!==value.approval?.phase || current.approval?.status!==value.approval?.status)render(current);
+          || current.approval?.phase!==value.approval?.phase || actionable(current)!==actionable(value))render(current);
         else queueRefresh(value);
       } catch {
         status.textContent='تعذر تحديث حالة النشر مؤقتًا. ستتم إعادة المحاولة.';
