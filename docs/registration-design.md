@@ -167,3 +167,30 @@ https://developers.google.com/identity/protocols/oauth2#expiration
 Final live readback before delivery: zero registrations, zero approval jobs, zero
 private objects and one active dispatcher. The workflow is deployed and open,
 not qualified by a real applicant approval or a full-size provider transfer.
+
+## Synthetic Provider Qualification - 2026-10-01
+
+The owner approved disposable synthetic public profiles and a full 2 GiB test,
+followed by cleanup. A real small-media submission exposed defects missed by
+mocked checks: signature-only TUS requires the `/sign` route; rotating Turnstile
+proof must not enter retry identity; signing retries must omit completed files;
+Drive resumable 308 acknowledgements must be read without following redirects.
+The corrected small-media workflow reached live publication, then a saved owner
+edit automatically moved it between categories and republished it. Anonymous
+thumbnail retrieval succeeded. Contact and owner-note markers remained private.
+
+The owner separately approved deleting only unfinished uploads older than 48
+hours. The `cast-registration-cleanup` worker authenticates a private random
+capability, takes a single lease, expires only unfinished records, removes their
+objects through Storage API, and deletes metadata only after a database check
+confirms no object remains. Pending, approving and approved records are excluded.
+The hourly dispatcher has no credential literal. Verified immutable files count
+their actual bytes; unverified signed destinations still reserve the full bucket
+limit. No private source files of submitted or approved requests are auto-deleted.
+
+Rollback checks cover cleanup boundaries, protected statuses, wrong capabilities,
+single leases, retained storage objects, worst-case quota, verified-byte quota,
+and per-client rate limits. A real cleanup removed three abandoned synthetic
+requests and their completed object, while current submissions stayed intact.
+The 2 GiB test upload has completed and matches Storage metadata exactly; Drive
+transfer and final publication qualification are still in progress at this point.

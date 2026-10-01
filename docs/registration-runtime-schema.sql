@@ -25,8 +25,9 @@ begin
       where created_at > now() - interval '1 day' and client_fingerprint = fingerprint) >= 10
     or (select count(*) from public.cast_registrations where created_at > now() - interval '1 day') >= 100
     -- Signed uploads are object-bound, not declaration-size-bound. Reserve the
-    -- worst-case bucket limit until that file's storage cleanup is complete.
-    or (select count(*) from public.cast_registration_files) * 2147483648
+    -- worst-case bucket limit until immutable storage content is verified.
+    or (select coalesce(sum(case when verified_at is not null and verified_size=declared_size
+      then declared_size else 2147483648 end),0) from public.cast_registration_files)
       + expected_count * 2147483648::bigint > 214748364800
     then raise exception 'Registration quota reached' using errcode = 'P0002'; end if;
   insert into public.cast_registrations(id, submission_token_hash, client_fingerprint,

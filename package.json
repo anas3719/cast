@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "build": "node scripts/build-auth.cjs",
-    "test": "node tests/admin-auth-recovery.cjs && node --test tests/auth-service.test.cjs tests/admin-login.test.cjs tests/registration-rules.test.cjs tests/registration-service.test.cjs tests/drive-auth.test.cjs tests/approval-service.test.cjs",
+    "test": "node tests/admin-auth-recovery.cjs && node --test tests/auth-service.test.cjs tests/admin-login.test.cjs tests/registration-rules.test.cjs tests/registration-service.test.cjs tests/registration-cleanup.test.cjs tests/drive-auth.test.cjs tests/approval-service.test.cjs",
     "vendor:registration": "node scripts/vendor-registration.cjs"
   },
   "engines": {

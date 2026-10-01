@@ -171,7 +171,12 @@
       refreshTimer=setTimeout(async()=>{
         if(!dialog.open || writing || uncertain || dirty || record?.id!==value.id)return;
         try {const current=await request('detail',{id:value.id});if(dialog.open && record?.id===value.id && !writing && !dirty)render(current.record);}
-        catch {status.textContent='تعذر تحديث حالة النشر مؤقتًا.';}
+        catch {
+          status.textContent='تعذر تحديث حالة النشر مؤقتًا. ستتم إعادة المحاولة.';
+          refreshTimer=setTimeout(()=>{
+            if(dialog.open && record?.id===value.id && !writing && !uncertain && !dirty)render(value);
+          },8000);
+        }
       },8000);
     }
     window.lucide?.createIcons();
@@ -245,7 +250,9 @@
           try {
             const result = await request('detail', { id: item.id });
             if (selected !== epoch || !dialog.open) return;
-            render(result.record); status.textContent = 'الطلب خاص بالإدارة حتى الاعتماد';
+            render(result.record); status.textContent = result.record.status==='approved'
+              ? 'البروفايل منشور. بيانات التواصل والملاحظات خاصة بالإدارة.'
+              : result.record.status==='approving' ? 'النشر جارٍ في الخلفية.' : 'الطلب خاص بالإدارة حتى الاعتماد';
           } catch (error) { if (selected === epoch) status.textContent = error.message; }
         }); list.append(button);
       }
