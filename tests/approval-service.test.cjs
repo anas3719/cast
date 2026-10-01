@@ -96,6 +96,25 @@ test('GitHub idempotence reconciles a lost publish receipt without another commi
   }});
   assert.deepEqual(await service.step({action:'publish',grant:await grant()}),{commit});assert.equal(writes,0);
 });
+
+test('transfer timeouts identify only the safe provider stage and retain resumable state',async()=>{
+  const value=plan();
+  const handle=await seal({jobId,fileId,url:'https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&upload_id=private'},'cast-drive-upload','7d');
+  for(const stage of ['source-range','source-read','drive-upload']) {
+    const service=createApprovalService({makeClient,fetcher:async(url,options)=>{
+      if(url.includes('/drive/v3/files/'+fileId+'?'))return new Response(null,{status:404});
+      if(options.headers['Content-Length']==='0')return new Response(null,{status:308});
+      if(url.includes('.supabase.co/')) {
+        if(stage==='source-range')throw new DOMException('private transport detail','TimeoutError');
+        const body=stage==='source-read'?new ReadableStream({pull(controller){controller.error(new DOMException('private transport detail','TimeoutError'));}}):new Uint8Array(CHUNK);
+        return new Response(body,{status:206,headers:{'content-range':`bytes 0-${CHUNK-1}/${value.files[0].size}`}});
+      }
+      throw new DOMException('private transport detail','TimeoutError');
+    }});
+    await assert.rejects(service.step({action:'upload',grant:await grant(value),slot:0,handle,offset:0,
+      sourceUrl:'https://vmnkdbceyqudcxddvljx.supabase.co/storage/v1/object/sign/cast-registration-private/'+value.files[0].path+'?token=synthetic'}),failure=>failure.stage===stage && failure.name==='TimeoutError');
+  }
+});
 test('all bytes acknowledged without finalized Drive metadata cannot advance the transfer',async()=>{
   const value=plan();value.files[0].size=7;
   const handle=await seal({jobId,fileId,url:'https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&upload_id=private'},'cast-drive-upload','7d');

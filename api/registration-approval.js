@@ -11,7 +11,8 @@ module.exports=async(req,res)=>{
     return json(res,200,result);
   } catch(e) {
     const code=['connection','retry','conflict','expired'].includes(e.code)?e.code:'retry';
-    console.warn('cast-approval-failure',{code,name:['TypeError','Error','TimeoutError'].includes(e.name)?e.name:'Other'});
+    console.warn('cast-approval-failure',{code,name:['TypeError','Error','TimeoutError'].includes(e.name)?e.name:'Other',
+      stage:['drive-upload','drive-request','source-range','source-read'].includes(e.stage)?e.stage:null});
     return json(res,code==='expired'||code==='connection'?401:503,{code});
   }
 };
