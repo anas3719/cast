@@ -8,8 +8,9 @@ Google client credentials are configured in the backend. Limited owner consent
 completed and encrypted connection persistence was verified on 2026-10-01.
 Durable approval/transfer and the private approval editor are implemented. The
 broker, worker, job schema and minute dispatcher are deployed. Bot protection and
-same-scope Google Production authorization are configured. Actual end-to-end
-applicant publication and a full 2 GiB transfer remain unverified.
+same-scope Google Production authorization are configured. Synthetic small-media
+publication, post-approval edits, Drive-link publication and rejection passed live.
+Maximum-size Drive transfer qualification remains in progress.
 Scope: anas3719/cast only. Do not modify the portfolio repository.
 
 ## Applicant Form
@@ -194,3 +195,25 @@ and per-client rate limits. A real cleanup removed three abandoned synthetic
 requests and their completed object, while current submissions stayed intact.
 The 2 GiB test upload has completed and matches Storage metadata exactly; Drive
 transfer and final publication qualification are still in progress at this point.
+
+## Private Origin Range Transfer
+
+The real 2 GiB trial exposed a CDN range-read stall that mocks did not reproduce.
+Approval now reads at most 8 MiB through `cast-registration-chunk`, using the
+Storage S3 origin. Authorization requires the current job's random capability,
+live lease, transfer phase, matching registration revision and verified file.
+The broker fixes the destination and file ID from its encrypted grant; clients
+cannot override the object, endpoint or byte limit. Exact 206 Content-Range is
+required. No bucket is public and no Storage credential leaves Supabase.
+
+Configure `CAST_S3_ANON_SIGNING_KEY` and `CAST_S3_SERVICE_SESSION` only as encrypted
+Edge Function secrets in this dedicated project. They contain the project's
+existing legacy anon and service_role JWT respectively. Do not use the automatically
+injected values merely because their environment names contain ANON or SERVICE_ROLE:
+the current runtime supplied modern API keys, which are incompatible with this
+S3 session-authentication protocol. Do not commit these values or put them in Vercel,
+browser state, logs or applicant payloads. Existing server credentials for database
+access stay unchanged; no new all-bucket S3 credential is created.
+
+References: https://supabase.com/docs/guides/storage/s3/authentication and
+https://supabase.com/docs/guides/storage/s3/compatibility

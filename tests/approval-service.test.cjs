@@ -78,14 +78,15 @@ test('resume probes server offset and bounds chunk length instead of trusting st
     if(url.includes('/drive/v3/files/'+fileId+'?'))return sent?Response.json({id:fileId,size:CHUNK+7,mimeType:'image/jpeg',
       parents:[value.folderId],appProperties:{anasCastRegistration:requestId}}):new Response(null,{status:404});
     if(url.includes('.supabase.co/')){
-      assert.equal(options.headers.Range,`bytes=${CHUNK}-${CHUNK+6}`);
+      const slice=JSON.parse(options.body);assert.equal(slice.offset,CHUNK);assert.equal(slice.end,CHUNK+6);
+      assert.equal(slice.fileId,value.files[0].recordId);
       return new Response(new Uint8Array(7),{status:206,headers:{'content-range':`bytes ${CHUNK}-${CHUNK+6}/${CHUNK+7}`}});
     }
     if(options.headers['Content-Length']==='0')return new Response(null,{status:308,headers:{range:`bytes=0-${CHUNK-1}`}});
     sent++;assert.equal(options.body.byteLength,7);return new Response(null,{status:308,headers:{range:`bytes=0-${CHUNK+6}`}});
   }});
   const result=await service.step({action:'upload',grant:await grant(value),slot:0,handle,offset:0,
-    sourceUrl:'https://vmnkdbceyqudcxddvljx.supabase.co/storage/v1/object/sign/cast-registration-private/'+value.files[0].path+'?token=synthetic'});
+    source:{ticket:'a'.repeat(64),lease:jobId}});
   assert.equal(sent,1);assert.equal(result.offset,CHUNK+7);
   assert.equal(result.complete,true);
 });
@@ -115,7 +116,7 @@ test('transfer timeouts identify only the safe provider stage and retain resumab
       throw new DOMException('private transport detail','TimeoutError');
     }});
     await assert.rejects(service.step({action:'upload',grant:await grant(value),slot:0,handle,offset:0,
-      sourceUrl:'https://vmnkdbceyqudcxddvljx.supabase.co/storage/v1/object/sign/cast-registration-private/'+value.files[0].path+'?token=synthetic'}),failure=>failure.stage===stage && failure.name==='TimeoutError');
+      source:{ticket:'a'.repeat(64),lease:jobId}}),failure=>failure.stage===stage && failure.name==='TimeoutError');
   }
 });
 test('all bytes acknowledged without finalized Drive metadata cannot advance the transfer',async()=>{
@@ -182,7 +183,7 @@ test('worker rejects wrong capability and stores commit through unknown checkpoi
   const recovery=calls.find(x=>x.args.failure);
   assert.equal(recovery.args.commit_id,commit);assert.equal(recovery.args.new_phase,4);
 });
-test('worker reuses one private source URL per file within a bounded transfer invocation',async()=>{
+test('worker passes only the current source lease and capability, never a storage key or signed URL',async()=>{
   const {createApprovalWorker}=await import('../lib/registration-approval.mjs');
   let signs=0,pending,offset=0;
   const urls=[];
@@ -190,18 +191,18 @@ test('worker reuses one private source URL per file within a bounded transfer in
   const db={
     from:()=>({select:()=>({eq:()=>({order:async()=>({data:[{...file,transferred_bytes:offset}]})})})}),
     storage:{from:()=>({createSignedUrl:async(path,ttl)=>{assert.equal(ttl,120);signs++;return {data:{signedUrl:'private-synthetic-'+signs}};}})},
-    rpc:async(name,args)=> name==='cast_claim_approval'?{data:{id:jobId,registration_id:requestId,lease:jobId,phase:1,encrypted_grant:'sealed'}}:
+    rpc:async(name,args)=> name==='cast_claim_approval'?{data:{id:jobId,registration_id:requestId,lease:jobId,phase:1,encrypted_grant:'sealed',tick_token:'a'.repeat(64)}}:
       name==='cast_checkpoint_approval'?(offset=args.transferred??offset,{data:null}):{data:null}
   };
   const worker=createApprovalWorker({db,waitUntil:p=>{pending=p;},fetcher:async(url,options)=>{
     const body=JSON.parse(options.body);
-    if(body.action==='upload'){urls.push(body.sourceUrl);return Response.json({offset:offset+5,handle:'sealed'});}
+    if(body.action==='upload'){urls.push(body.source);assert.equal(body.sourceUrl,undefined);return Response.json({offset:offset+5,handle:'sealed'});}
     if(body.action==='publish')return Response.json({commit});
     return Response.json({live:true});
   }});
   await worker(new Request('https://example.com',{method:'POST',body:JSON.stringify({jobId,ticket:'a'.repeat(64)})}));
   await pending;
-  assert.equal(signs,1);assert.deepEqual(urls,['private-synthetic-1','private-synthetic-1']);assert.equal(offset,10);
+  assert.equal(signs,0);assert.deepEqual(urls,[{ticket:'a'.repeat(64),lease:jobId},{ticket:'a'.repeat(64),lease:jobId}]);assert.equal(offset,10);
 });
 test('review polling preserves media nodes until status or revision changes and retries read failures',async()=>{
   const source=fs.readFileSync('cast-registrations.js','utf8');
