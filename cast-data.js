@@ -291,7 +291,8 @@ window.castMembers = [
     "weight": "",
     "nationality": "فلسطيني",
     "speaking": "متحدث",
-    "note": ""
+    "note": "",
+    "displayOrder": 2
   },
   {
     "id": "hamzah",
@@ -351,7 +352,8 @@ window.castMembers = [
     "weight": "",
     "nationality": "",
     "speaking": "",
-    "note": ""
+    "note": "",
+    "displayOrder": 3
   },
   {
     "id": "khalid-halawani",
@@ -869,7 +871,8 @@ window.castMembers = [
     "weight": "",
     "nationality": "",
     "speaking": "",
-    "note": ""
+    "note": "",
+    "displayOrder": 4
   },
   {
     "id": "noura",
@@ -1163,5 +1166,19 @@ window.castMembers = [
     "speaking": "متحدثة",
     "completedOrder": 33,
     "note": ""
+  },
+  {
+    "id": "registration-c78f2e20-2a81-403b-8f6f-6d685fea454e",
+    "name": "خالد علي عبدالله",
+    "category": "seniorMen",
+    "folderUrl": "https://drive.google.com/drive/folders/141_CSrrB3Onk7M5Mv4D0zP3QNChlzyHU",
+    "photoUrl": "https://drive.google.com/thumbnail?id=1TpQF_Cy1eYl4baREqWaibQcsGsJY6CdC&sz=w1000",
+    "imageTitle": "صورة البروفايل",
+    "age": "50",
+    "height": "167",
+    "weight": "85",
+    "nationality": "يمني",
+    "speaking": "متحدث",
+    "displayOrder": 1
   }
 ];
