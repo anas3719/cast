@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const id = '00000000-0000-4000-8000-000000000000';
-let created, failNextEdit = false, failNextApproval=false;
+let created, failNextEdit = false, failNextApproval=false, completeApproval=false, approvalReads=0;
 const uploads = new Map();
 const record = { id, profileId: 'registration-' + id, revision: 1, status: 'pending',
   profile: { name: 'ملف تجريبي', gender: 'female', age: 26, height: 165, weight: 55, nationality: '', speaking: 'yes', category: 'women' },
@@ -28,7 +28,12 @@ http.createServer(async (req, res) => {
     const body = JSON.parse(raw);
     if (body.action === 'availability') return json(res, { open: true, siteKey: 'synthetic' });
     if (body.action === 'list') return json(res, { records: [{ id, name: record.profile.name, category: 'women', status: record.status, revision: record.revision }] });
-    if (body.action === 'detail') return json(res, { record });
+    if (body.action === 'detail') {
+      if (completeApproval && record.status === 'approving' && ++approvalReads > 1) {
+        record.status = 'approved'; record.approval = {status:'done',phase:5};
+      }
+      return json(res, { record });
+    }
     if (body.action === 'drive-status') return json(res, { connected: true, connectedAt: '2026-10-01T00:00:00Z',approvalReady:true });
     if (body.action === 'approve') {
       record.status='approving';record.revision++;record.approval={status:'queued',phase:1};
@@ -66,6 +71,7 @@ http.createServer(async (req, res) => {
   if (filename.endsWith('cast-admin.html')) {
     failNextEdit = url.searchParams.get('fixture') === 'uncertain';
     failNextApproval=url.searchParams.get('fixture')==='approval-uncertain';
+    completeApproval=url.searchParams.get('fixture')==='approval-complete';approvalReads=0;
     record.status='pending';delete record.approval;
     content = Buffer.from(content.toString().replace(/cast-admin-login\.js[^" ]*/, '__fixture/login.js'));
   }
