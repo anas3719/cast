@@ -10,6 +10,20 @@ const response = () => ({ statusCode: 0, setHeader() {}, end(body) { this.body =
 const req = body => new Request('https://vmnkdbceyqudcxddvljx.supabase.co/functions/v1/cast-registration', {
   method: 'POST', headers: { Origin: ORIGIN, 'Content-Type': 'application/json' }, body: JSON.stringify(body),
 });
+test('review list excludes published registrations without deleting their private records',async()=>{
+  const {createRegistrationHandler}=await import('../lib/registration-handler.mjs');
+  let statuses,selected,limit,ordered;
+  const query={select:fields=>(selected=fields,query),in:(key,values)=>(assert.equal(key,'status'),statuses=values,query),
+    order:(key)=>(ordered=key,query),limit:async value=>(limit=value,{data:[{id:'pending-only',status:'pending'}]})};
+  const handler=createRegistrationHandler({db:{from:table=>(assert.equal(table,'cast_registrations'),query)},rules,
+    env:name=>name==='SUPABASE_URL'?'https://vmnkdbceyqudcxddvljx.supabase.co':'',
+    fetcher:async()=>Response.json({authorized:true})});
+  const request=req({action:'list'});request.headers.set('Authorization','Bearer synthetic-owner');
+  const result=await handler(request);
+  assert.equal(result.status,200);assert.deepEqual(statuses,['pending','approving','rejected']);
+  assert.equal(limit,200);assert.equal(ordered,'created_at');assert.ok(!selected.includes('whatsapp'));
+  assert.deepEqual((await result.json()).records,[{id:'pending-only',status:'pending'}]);
+});
 
 test('owner verification never rotates credentials or discloses them', async () => {
   const original = global.fetch;

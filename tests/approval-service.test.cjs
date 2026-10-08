@@ -43,6 +43,73 @@ test('new profiles follow permanent first profiles, preserve other fields, edits
   assert.equal(edited.find(x=>x.name==='Edited').displayOrder,2);
   assert.throws(()=>updateCatalog(source,{...plan().profile,whatsapp:'+966500000000'}));
 });
+test('new approvals lead every category with only Anas pinned; retries and edits preserve the order',()=>{
+  for (const category of ['men','women','boys','girls','seniorMen','seniorWomen']) {
+    const anchor = category === 'men' ? 'anas-omar' : 'walaa';
+    let source = 'window.castMembers='+JSON.stringify([
+      {id:anchor,category,displayOrder:1}, {id:'old',category,displayOrder:2,note:'keep'},
+    ])+';';
+    const first={...plan().profile,category};
+    source=updateCatalog(source,first);
+    const second={...first,id:'registration-55555555-5555-4555-8555-555555555555'};
+    source=updateCatalog(source,second);
+    const ordered=readCatalog(source).members.sort((a,b)=>a.displayOrder-b.displayOrder);
+    assert.equal(ordered[0].id,category==='men'?'anas-omar':second.id);
+    assert.equal(ordered[category==='men'?1:0].id,second.id);
+    assert.equal(ordered[category==='men'?2:1].id,first.id);
+    assert.equal(updateCatalog(source,second),source);
+    assert.equal(readCatalog(updateCatalog(source,{...first,name:'Edited'})).members.find(x=>x.id===first.id).displayOrder,
+      category==='men'?3:2);
+  }
+});
+test('approval order follows the owner action, not which media transfer finishes first',()=>{
+  const older={...plan().profile,category:'women'};
+  const newer={...older,id:'registration-55555555-5555-4555-8555-555555555555'};
+  let source=updateCatalog('window.castMembers=[];',newer,{approvalOrder:2000});
+  source=updateCatalog(source,older,{approvalOrder:1000});
+  const sorted=readCatalog(source).members.sort((a,b)=>a.displayOrder-b.displayOrder);
+  assert.equal(sorted[0].id,newer.id);assert.equal(sorted[1].id,older.id);
+  assert.equal(updateCatalog(source,older,{approvalOrder:1000}),source);
+});
+test('approval completion removes only that request from the review UI',()=>{
+  const source=fs.readFileSync('cast-registrations.js','utf8');
+  const tree=require('acorn').parse(source,{ecmaVersion:2024});
+  const fn=tree.body[0].expression.callee.body.body.find(node=>node.type==='FunctionDeclaration'&&node.id.name==='render');
+  let removed=0,cleared=0;
+  const context={refreshTimer:0,clearTimeout(){},record:{id:requestId},dirty:true,uncertain:true,status:{},
+    list:{querySelector:selector=>{assert.ok(selector.includes(requestId));return {remove(){removed++;}};}},
+    editor:{replaceChildren(){cleared++;}},value:{id:requestId,status:'approved'}};
+  require('node:vm').runInNewContext(source.slice(fn.start,fn.end)+';render(value);',context);
+  assert.equal(removed,1);assert.equal(cleared,1);assert.equal(context.record,null);
+  assert.equal(context.dirty,false);assert.equal(context.uncertain,false);assert.ok(context.status.textContent.includes('تم الاعتماد'));
+});
+test('official destination folders are verified without renaming or altering existing category folders',async()=>{
+  const destinations=require('../lib/drive-destinations.cjs');
+  const value={...plan(),rootId:destinations.ROOT,categories:destinations.CATEGORIES};
+  const writes=[];
+  const service=createApprovalService({makeClient,fetcher:async(url,options)=>{
+    if(options.method==='POST') { writes.push(JSON.parse(options.body));return Response.json({id:value.folderId}); }
+    assert.equal(options.method,undefined);
+    if(url.includes('/'+value.folderId+'?'))return new Response(null,{status:404});
+    return Response.json({mimeType:'application/vnd.google-apps.folder',parents:[destinations.ROOT]});
+  }});
+  await service.step({action:'folders',grant:await grant(value)});
+  assert.equal(writes.length,1);
+  assert.equal(writes[0].parents[0],destinations.CATEGORIES.men);
+  assert.equal(writes[0].id,value.folderId);
+});
+test('inaccessible or wrongly mapped official folders fail closed without creating replacements',async()=>{
+  const destinations=require('../lib/drive-destinations.cjs');
+  for (const wrongMapping of [false,true]) {
+    const value={...plan(),rootId:destinations.ROOT,categories:wrongMapping?plan().categories:destinations.CATEGORIES};
+    let writes=0;
+    const service=createApprovalService({makeClient,fetcher:async(url,options)=>{
+      if(options.method)writes++;return new Response(null,{status:404});
+    }});
+    await assert.rejects(service.step({action:'folders',grant:await grant(value)}));
+    assert.equal(writes,0);
+  }
+});
 test('grant manifests and transport reject private fields, oversized files and SSRF',()=>{
   assert.equal(CHUNK,8*1024*1024);
   assert.equal(CHUNK%(256*1024),0);

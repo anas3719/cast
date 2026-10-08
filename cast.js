@@ -195,7 +195,6 @@ function getDisplayValue(value, emptyValue = missingValue) {
 
 function getAlwaysFirstOrder(member) {
   if (member.category === "men" && member.id === "anas-omar") return 1;
-  if (member.category === "women" && member.id === "walaa") return 1;
   return Number.MAX_SAFE_INTEGER;
 }
 

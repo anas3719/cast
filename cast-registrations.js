@@ -36,7 +36,10 @@
       pipelineReady=state.connected && state.approvalReady;
       const approve=document.querySelector('#registration-approve');
       if(approve && record && !writing && !uncertain)approve.disabled=!canApprove(record);
-      driveStatus.textContent = state.connected ? 'ربط الدرايف محفوظ في الخدمة الخلفية' : 'لم يُربط الدرايف بعد';
+      driveStatus.textContent = state.connected
+        ? (state.officialFoldersConfigured ? 'الحفظ في مجلدات الكاست الأساسية' : 'الحفظ الحالي في مجلد التسجيلات المستقل')
+          + (state.officialFoldersReady ? ' · المجلدات الأساسية متاحة للربط' : '')
+        : 'لم يُربط الدرايف بعد';
       if (driveReturn === 'failed') {
         driveStatus.textContent = ['expired', 'expired-or-missing'].includes(driveFailure)
           ? 'انتهت جلسة الربط أو لم تصل إلى الخدمة. اضغط ربط الدرايف وأكمل الموافقة خلال 10 دقائق في نفس تبويب Chrome.'
@@ -119,6 +122,13 @@
   }
   function render(value) {
     clearTimeout(refreshTimer);
+    if (value.status === 'approved') {
+      list.querySelector('button[data-id="'+value.id+'"]')?.remove();
+      editor.replaceChildren();
+      record = null; dirty = false; uncertain = false;
+      status.textContent = 'تم الاعتماد والنشر. البروفايل موجود في القائمة الأساسية للتعديل.';
+      return;
+    }
     record = value;
     dirty = false; uncertain = false;
     editor.replaceChildren();
@@ -247,8 +257,9 @@
     list.replaceChildren(); editor.replaceChildren(); signIn.hidden = true;
     try {
       const data = await request('list'); if (current !== epoch || !dialog.open) return;
-      status.textContent = data.records.length ? 'اختر طلبًا للمراجعة' : 'لا توجد طلبات تسجيل حتى الآن';
-      for (const item of data.records) {
+      const records = data.records.filter(item => item.status !== 'approved');
+      status.textContent = records.length ? 'اختر طلبًا للمراجعة' : 'لا توجد طلبات تسجيل للمراجعة';
+      for (const item of records) {
         const button = make('button'); button.type = 'button'; button.dataset.id = item.id;
         button.setAttribute('aria-pressed', 'false');
         button.append(make('strong', item.name), make('small', (rules.categories[item.category] || '') + ' · ' + statuses[item.status]));
