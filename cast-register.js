@@ -13,15 +13,48 @@
   let open = false, busy = false, stopped = false, attempt, activeUpload, previewUrl, challenge = '', widget;
   const mimeByExtension = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp',
     heic: 'image/heic', heif: 'image/heif', mp4: 'video/mp4', mov: 'video/quicktime', webm: 'video/webm' };
+  // Retry identity lives in this page, so resume URLs need not depend on browser storage.
+  const uploadUrls = new Map();
+  const urlStorage = {
+    findUploadsByFingerprint: async fingerprint => [...uploadUrls.values()].filter(item => item.fingerprint === fingerprint),
+    addUpload: async (fingerprint, upload) => {
+      const key = fingerprint;
+      uploadUrls.set(key, { ...upload, fingerprint, urlStorageKey: key });
+      return key;
+    },
+    removeUpload: async key => { uploadUrls.delete(key); },
+  };
+  function mediaType(file) {
+    const type = file.type.toLowerCase();
+    const aliases = { 'image/jpg': 'image/jpeg', 'video/x-m4v': 'video/mp4',
+      'image/heic-sequence': 'image/heic', 'image/heif-sequence': 'image/heif', 'video/mov': 'video/quicktime' };
+    return aliases[type] || ((!type || type === 'application/octet-stream')
+      ? mimeByExtension[file.name.split('.').pop().toLowerCase()] || '' : type);
+  }
+  function randomId() {
+    if (crypto.randomUUID) return crypto.randomUUID();
+    const bytes = crypto.getRandomValues(new Uint8Array(16));
+    bytes[6] = (bytes[6] & 15) | 64; bytes[8] = (bytes[8] & 63) | 128;
+    const hex = [...bytes].map(value => value.toString(16).padStart(2, '0')).join('');
+    return [hex.slice(0, 8), hex.slice(8, 12), hex.slice(12, 16), hex.slice(16, 20), hex.slice(20)].join('-');
+  }
 
   async function request(action, body = {}, ticket = '') {
-    const response = await fetch(api, { method: 'POST', cache: 'no-store',
-      headers: { 'Content-Type': 'application/json', ...(ticket ? { Authorization: 'Bearer ' + ticket } : {}) },
-      body: JSON.stringify({ ...body, action }),
-    });
-    const data = await response.json();
-    if (!response.ok) throw Object.assign(new Error(data.message || 'تعذر الاتصال. حاول مرة أخرى.'), { errors: data.errors });
-    return data;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), action === 'submit' ? 120000 : 45000);
+    try {
+      const response = await fetch(api, { method: 'POST', cache: 'no-store', signal: controller.signal,
+        headers: { 'Content-Type': 'application/json', ...(ticket ? { Authorization: 'Bearer ' + ticket } : {}) },
+        body: JSON.stringify({ ...body, action }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw Object.assign(new Error(data.message || 'تعذر الاتصال. حاول مرة أخرى.'), { errors: data.errors });
+      return data;
+    } catch (error) {
+      if (error.name === 'AbortError') throw new Error('تأخر الاتصال. بياناتك محفوظة في هذه الصفحة؛ أعد المحاولة.');
+      if (error instanceof TypeError) throw new Error('تعذر الاتصال بالإنترنت. بياناتك محفوظة في هذه الصفحة؛ أعد المحاولة.');
+      throw error;
+    } finally { clearTimeout(timer); }
   }
 
   function fields() {
@@ -34,7 +67,7 @@
     const data = fields();
     const chosen = [portrait.files[0], ...(data.worksMode === 'upload' ? [...works.files] : [])].filter(Boolean);
     return { data, chosen, manifest: chosen.map((file, index) => ({ name: file.name, size: file.size,
-      type: file.type || mimeByExtension[file.name.split('.').pop().toLowerCase()] || '',
+      type: mediaType(file),
       role: index === 0 && portrait.files[0] ? 'portrait' : 'work' })) };
   }
   function showErrors(errors = {}) {
@@ -80,12 +113,14 @@
           contentType: signed.type, cacheControl: '3600' },
         chunkSize: 6 * 1024 * 1024, uploadDataDuringCreation: true,
         retryDelays: [0, 3000, 5000, 10000, 20000], removeFingerprintOnSuccess: true,
+        urlStorage,
+        onBeforeRequest(request) { request.getUnderlyingObject().timeout = 300000; },
         fingerprint: async () => 'cast-registration-' + attempt.id + '-' + signed.slot,
         onProgress(uploaded) {
           progress.value = (doneBytes + uploaded) / totalBytes * 100;
-          document.querySelector('#progress-label').textContent = 'رفع المرفقات ' + Math.round(progress.value) + '%';
+          document.querySelector('#progress-label').textContent = 'رفع ' + file.name + ': ' + Math.round(progress.value) + '%';
         },
-        onError() { reject(new Error('تعذر إكمال الرفع. بياناتك موجودة ويمكنك إعادة المحاولة.')); },
+        onError() { reject(new Error('تعذر رفع ' + file.name + '. بياناتك موجودة في هذه الصفحة ويمكنك إعادة المحاولة.')); },
         onSuccess() { resolve(); },
       });
       const upload = activeUpload;
@@ -160,7 +195,7 @@
     if (attempt && attempt.snapshot !== snapshot) attempt = null;
     if (!attempt) {
       const random = [...crypto.getRandomValues(new Uint8Array(32))].map(x => x.toString(16).padStart(2, '0')).join('');
-      attempt = { id: crypto.randomUUID(), ticket: random, snapshot, created: false, completed: new Set() };
+      attempt = { id: randomId(), ticket: random, snapshot, created: false, completed: new Set() };
     }
     setBusy(true); stopped = false; progress.value = 0;
     try {
@@ -175,15 +210,17 @@
       }
       if (stopped) throw new Error('توقف الرفع. أعد المحاولة.');
       const slots = selected.chosen.map((_, index) => index).filter(index => !attempt.completed.has(index));
-      const config = await request('uploads', { id: attempt.id, slots }, attempt.ticket);
       let done = selected.chosen.reduce((sum, file, index) => sum + (attempt.completed.has(index) ? file.size : 0), 0);
       const total = selected.chosen.reduce((sum, file) => sum + file.size, 0);
-      for (const signed of config.uploads) {
-        if (!attempt.completed.has(signed.slot)) {
-          await uploadFile(selected.chosen[signed.slot], signed, config, done, total);
-          attempt.completed.add(signed.slot);
-        }
-        done += selected.chosen[signed.slot].size;
+      for (const slot of slots) {
+        if (stopped) throw new Error('توقف الرفع. أعد المحاولة.');
+        // Sign immediately before each file, not before a possibly hours-long video queue.
+        const config = await request('uploads', { id: attempt.id, slots: [slot] }, attempt.ticket);
+        const signed = config.uploads.find(item => item.slot === slot);
+        if (!signed) throw new Error('تعذر تجهيز الملف للرفع. أعد المحاولة.');
+        await uploadFile(selected.chosen[slot], signed, config, done, total);
+        attempt.completed.add(slot);
+        done += selected.chosen[slot].size;
       }
       if (stopped) throw new Error('توقف الرفع. أعد المحاولة.');
       document.querySelector('#progress-label').textContent = 'جاري التحقق وحفظ الطلب';

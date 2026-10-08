@@ -159,13 +159,37 @@ test('signature checks reject renamed unsupported files and distinguish images f
   const { matchesMedia, validatedManifest, privateView } = await import('../lib/registration-security.mjs');
   assert.equal(matchesMedia(Uint8Array.from([255, 216, 255]), 'image/jpeg'), true);
   assert.equal(matchesMedia(new TextEncoder().encode('<script>alert(1)</script>'), 'image/jpeg'), false);
-  assert.equal(matchesMedia(new TextEncoder().encode('0000ftypisom'), 'video/mp4'), true);
+  assert.equal(matchesMedia(new TextEncoder().encode('0000ftypisom'), 'video/mp4'), false);
   assert.equal(matchesMedia(new TextEncoder().encode('0000ftypisom'), 'image/heic'), false);
   assert.throws(() => validatedManifest([{ name: 'x.jpg', type: 'image/jpeg', size: 2147483649 }], rules, 'drive'));
   const privateRecord = privateView({ id: 'x', submission_token_hash: 'secret', whatsapp: '+966500000000',
     drive_upload_url: 'https://secret', owner_note: 'private', speaking: false }, []);
   assert.equal(privateRecord.privateContact.whatsapp, '+966500000000');
   assert.ok(!JSON.stringify(privateRecord).includes('secret'));
+});
+
+test('media signatures allow real ISO compatible brands and leading padding without trusting extensions', async () => {
+  const {matchesMedia} = await import('../lib/registration-security.mjs');
+  const atom = (type, body = Buffer.alloc(0)) => {
+    const bytes = Buffer.alloc(body.length + 8);
+    bytes.writeUInt32BE(bytes.length); bytes.write(type, 4, 'ascii'); body.copy(bytes, 8);
+    return bytes;
+  };
+  const ftyp = (major, compatible = '') => atom('ftyp', Buffer.concat([
+    Buffer.from(major, 'ascii'), Buffer.alloc(4), Buffer.from(compatible, 'ascii'),
+  ]));
+  for (const mime of ['video/mp4', 'video/quicktime']) {
+    for (const header of [ftyp('isom'), ftyp('qt  '), ftyp('mp42', 'qt  '),
+      Buffer.concat([atom('wide'), ftyp('qt  ')]), Buffer.concat([atom('free'), ftyp('isom')])]) {
+      assert.equal(matchesMedia(header, mime), true);
+    }
+    for (const header of [ftyp('mif1', 'heic'), ftyp('jpeg'), Buffer.from('<html>bad.mov</html>'),
+      Buffer.from([0, 0, 0, 0, 102, 116, 121, 112]), Buffer.alloc(0)]) {
+      assert.equal(matchesMedia(header, mime), false);
+    }
+  }
+  assert.equal(matchesMedia(ftyp('mif1', 'heic'), 'image/heic'), true);
+  assert.equal(matchesMedia(ftyp('isom'), 'image/heic'), false);
 });
 
 test('signed anonymous uploads use the signature-only TUS route without exposing server credentials', async () => {
