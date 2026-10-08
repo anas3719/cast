@@ -53,13 +53,16 @@ test('official storage respects an active-approval conflict and never starts mig
   request.headers.set('Authorization','Bearer synthetic-owner');
   assert.equal((await handler(request)).status,409);assert.equal(rpcCalls,1);
 });
-test('verified official connection migrates only approved database folders and returns no credential',async()=>{
+test('verified official storage returns before migration and a separate owner action moves only approved database folders',async()=>{
   const {createRegistrationHandler}=await import('../lib/registration-handler.mjs');
   const destinations=require('../lib/drive-destinations.cjs');let stored=false,migrated=false;
   const query={select:fields=>(assert.equal(fields,'id,category,drive_folder_id'),query),
     eq:(key,value)=>(assert.equal(key,'status'),assert.equal(value,'approved'),query),order:()=>query,
     range:async(start,end)=>(assert.equal(start,0),assert.equal(end,19),{data:[{id:'synthetic-request',category:'boys',drive_folder_id:'synthetic-person-folder'}]})};
-  const handler=createRegistrationHandler({db:{rpc:async()=>{stored=true;return {data:null};},from:()=>query},rules,
+  const integrationQuery={select:()=>integrationQuery,eq:()=>integrationQuery,
+    maybeSingle:async()=>({data:{root_folder_id:destinations.ROOT,encrypted_connection:'sealed-only'}})};
+  const handler=createRegistrationHandler({db:{rpc:async()=>{stored=true;return {data:null};},
+    from:table=>table==='cast_registration_integrations'?integrationQuery:query},rules,
     env:name=>name==='SUPABASE_URL'?'https://vmnkdbceyqudcxddvljx.supabase.co':'',
     fetcher:async(url,options)=>{
       if(url.includes('registration-owner'))return Response.json({authorized:true});
@@ -72,9 +75,12 @@ test('verified official connection migrates only approved database folders and r
     }});
   const request=req({action:'drive-store',connection:'sealed-only',destination:'official',pickedIds:destinations.FILE_IDS});
   request.headers.set('Authorization','Bearer synthetic-owner');
-  const result=await handler(request);assert.equal(result.status,200);assert.equal(migrated,true);
-  const data=await result.json();assert.deepEqual(data,{connected:true,destination:'official',migrated:1,nextOffset:null});
+  const result=await handler(request);assert.equal(result.status,200);assert.equal(stored,true);assert.equal(migrated,false);
+  const data=await result.json();assert.deepEqual(data,{connected:true,destination:'official',migrationPending:true});
   assert.ok(!JSON.stringify(data).includes('sealed-only'));
+  const migration=req({action:'drive-migrate',offset:0});migration.headers.set('Authorization','Bearer synthetic-owner');
+  const migratedResponse=await handler(migration);assert.equal(migratedResponse.status,200);assert.equal(migrated,true);
+  assert.deepEqual(await migratedResponse.json(),{migrated:1,nextOffset:null});
 });
 
 test('owner verification never rotates credentials or discloses them', async () => {

@@ -111,7 +111,22 @@ shared folder containing the applicant's contact record.
   retaining their IDs, names, media and public links. Retries reconcile the
   destination; unrelated folders are never moved and missing folders are not
   recreated by migration. The previous root is retained, not deleted.
+- Connection storage returns before media-folder migration, so a long move
+  cannot turn a successful OAuth connection into a failed callback. The owner
+  UI runs bounded migration batches after return and reconciles provider state
+  before reporting failure or requesting authorization again.
 - Google reference: https://developers.google.com/workspace/drive/picker/guides/desktop-mobile-picker
+
+Live primary-folder verification (2026-10-08): the owner selected exactly the
+seven filtered folders through Google OnePick. The encrypted integration now
+points to the original root and all six original categories. Six existing
+approved person folders were independently read before and after migration:
+their parent IDs changed to the correct original categories while every folder
+ID and name remained unchanged. All 83 catalog records and public links stayed
+identical. No real profile was added, approved, edited or deleted in this test.
+The first callback lost its acknowledgement during synchronous migration;
+connection persistence and all six moves were verified before retry, and the
+callback was then separated from migration to remove that misleading failure.
   OAuth project anas-cast-registration has Drive API enabled and branding saved;
   its web client uses the cast-admin backend callback, not a portfolio callback.
   Google credentials stay encrypted in a server-only integration table.

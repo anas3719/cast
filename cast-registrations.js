@@ -55,7 +55,8 @@
   async function checkDrive() {
     try {
       const state = await request('drive-status');
-      pipelineReady=state.connected && state.approvalReady;
+      pipelineReady=state.connected && state.approvalReady
+        && (!state.officialFoldersConfigured || state.officialFoldersReady);
       officialConfigured = state.officialFoldersConfigured === true;
       officialButton.hidden = !state.connected;
       officialLabel.textContent = officialConfigured ? 'مزامنة الملفات المعتمدة' : 'ربط المجلدات الأساسية';
@@ -64,9 +65,11 @@
       if(approve && record && !writing && !uncertain)approve.disabled=!canApprove(record);
       driveStatus.textContent = state.connected
         ? (state.officialFoldersConfigured ? 'الحفظ في مجلدات الكاست الأساسية' : 'الحفظ الحالي في مجلد التسجيلات المستقل')
-          + (state.officialFoldersReady ? ' · المجلدات الأساسية متاحة للربط' : '')
+          + (state.officialFoldersReady && !officialConfigured ? ' · المجلدات الأساسية متاحة للربط' : '')
         : 'لم يُربط الدرايف بعد';
-      if (driveReturn === 'failed') {
+      if (driveReturn === 'failed' && officialConfigured && state.officialFoldersReady) {
+        driveStatus.textContent = 'الربط بالمجلدات الأساسية محفوظ وفعّال. لم يتأكد رد آخر محاولة الربط.';
+      } else if (driveReturn === 'failed') {
         driveStatus.textContent = ['expired', 'expired-or-missing'].includes(driveFailure)
           ? 'انتهت جلسة الربط أو لم تصل إلى الخدمة. اضغط ربط الدرايف وأكمل الموافقة خلال 10 دقائق في نفس تبويب Chrome.'
           : driveFailure === 'folders' ? 'لم تُحدد المجلدات الأساسية السبعة. لم يتغير مسار الحفظ.'
@@ -75,7 +78,7 @@
       }
       else if (driveReturn === 'connected' && !state.connected) driveStatus.textContent = 'لم يتم تأكيد حفظ الربط بعد.';
       driveButton.textContent = state.connected ? 'إعادة ربط الدرايف' : 'ربط الدرايف';
-      if (driveReturn === 'connected' && officialConfigured) await syncApprovedFolders();
+      if (['connected','failed'].includes(driveReturn) && officialConfigured && state.officialFoldersReady) await syncApprovedFolders();
       driveReturn = null;
     } catch (error) { driveStatus.textContent = error.message; }
   }

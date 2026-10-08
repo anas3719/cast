@@ -83,6 +83,20 @@ test('approval completion removes only that request from the review UI',()=>{
   assert.equal(removed,1);assert.equal(cleared,1);assert.equal(context.record,null);
   assert.equal(context.dirty,false);assert.equal(context.uncertain,false);assert.ok(context.status.textContent.includes('تم الاعتماد'));
 });
+test('a lost connection acknowledgement reconciles the saved official destination instead of requesting new access',async()=>{
+  const source=fs.readFileSync('cast-registrations.js','utf8'),tree=require('acorn').parse(source,{ecmaVersion:2024});
+  const fn=tree.body[0].expression.callee.body.body.find(node=>node.type==='FunctionDeclaration'&&node.id.name==='checkDrive');
+  let writable=true,syncs=0;
+  const context={request:async()=>({connected:true,approvalReady:true,officialFoldersConfigured:true,officialFoldersReady:writable}),
+    pipelineReady:false,officialConfigured:false,officialButton:{},officialLabel:{},window:{},
+    document:{querySelector(){return null;}},record:null,writing:false,uncertain:false,driveStatus:{},
+    driveReturn:'failed',driveFailure:'failed',driveButton:{},syncApprovedFolders:async()=>{syncs++;context.driveStatus.textContent='Verified existing destination';}};
+  require('node:vm').runInNewContext(source.slice(fn.start,fn.end),context);
+  await context.checkDrive();assert.equal(syncs,1);assert.equal(context.pipelineReady,true);
+  assert.equal(context.driveStatus.textContent,'Verified existing destination');assert.equal(context.driveReturn,null);
+  writable=false;context.driveReturn='failed';await context.checkDrive();
+  assert.equal(syncs,1);assert.equal(context.pipelineReady,false);
+});
 test('official destination folders are verified without renaming or altering existing category folders',async()=>{
   const destinations=require('../lib/drive-destinations.cjs');
   const value={...plan(),rootId:destinations.ROOT,categories:destinations.CATEGORIES};
