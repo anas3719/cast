@@ -632,6 +632,8 @@
   }
 
   function fillForm(member) {
+    const privateButton = document.querySelector('#registration-private-profile');
+    if (privateButton) privateButton.hidden = !/^registration-[a-f0-9-]{36}$/.test(member.id || '');
     resetValidation();
     elements.profileName.value = member.name || "";
     elements.profileCategory.value = member.category || categoryDefinitions[0]?.key || "";
@@ -1879,6 +1881,11 @@
   elements.profileSearch.addEventListener("input", renderProfiles);
   elements.categoryFilter.addEventListener("change", renderProfiles);
   elements.addProfile.addEventListener("click", startNewProfile);
+  document.querySelector('#registration-private-profile')?.addEventListener('click', () => {
+    if (!selectedId || !confirmDiscardForm()) return;
+    if (formDirty) fillForm(members.find(member => member.id === selectedId));
+    window.dispatchEvent(new CustomEvent('cast:registration-profile', { detail: { profileId: selectedId } }));
+  });
   elements.manageCategories.addEventListener("click", openCategoryManager);
   elements.categoriesForm.addEventListener("submit", saveCategorySettings);
   elements.addCategory.addEventListener("click", addCategoryDraft);

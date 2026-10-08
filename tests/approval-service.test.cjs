@@ -76,7 +76,7 @@ test('approval completion removes only that request from the review UI',()=>{
   const tree=require('acorn').parse(source,{ecmaVersion:2024});
   const fn=tree.body[0].expression.callee.body.body.find(node=>node.type==='FunctionDeclaration'&&node.id.name==='render');
   let removed=0,cleared=0;
-  const context={refreshTimer:0,clearTimeout(){},record:{id:requestId},dirty:true,uncertain:true,status:{},
+  const context={refreshTimer:0,clearTimeout(){},reviewMode:'requests',record:{id:requestId},dirty:true,uncertain:true,status:{},
     list:{querySelector:selector=>{assert.ok(selector.includes(requestId));return {remove(){removed++;}};}},
     editor:{replaceChildren(){cleared++;}},value:{id:requestId,status:'approved'}};
   require('node:vm').runInNewContext(source.slice(fn.start,fn.end)+';render(value);',context);

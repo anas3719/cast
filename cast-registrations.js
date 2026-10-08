@@ -10,6 +10,7 @@
   const statuses = { pending: 'بانتظار المراجعة', approving: 'جاري الاعتماد', approved: 'معتمد', rejected: 'مرفوض' };
   let record, epoch = 0, dirty = false, writing = false, uncertain = false;
   let pipelineReady=false,refreshTimer;
+  let reviewMode = 'requests';
   function canApprove(value) {
     return pipelineReady && ['pending','approved','approving'].includes(value.status)
       && (value.status!=='approving' || ['needs_grant','needs_owner'].includes(value.approval?.status))
@@ -122,7 +123,7 @@
   }
   function render(value) {
     clearTimeout(refreshTimer);
-    if (value.status === 'approved') {
+    if (value.status === 'approved' && reviewMode === 'requests') {
       list.querySelector('button[data-id="'+value.id+'"]')?.remove();
       editor.replaceChildren();
       record = null; dirty = false; uncertain = false;
@@ -189,8 +190,10 @@
     const icon = make('i'); icon.dataset.lucide = 'save'; icon.setAttribute('aria-hidden', 'true'); save.append(icon, make('span', 'حفظ البيانات'));
     const approve = make('button', value.status==='approving'?'استكمال النشر':'اعتماد ونشر', 'button button-secondary');
     approve.id='registration-approve';approve.type = 'button'; approve.disabled = !canApprove(value);
+    approve.hidden = value.status === 'approved';
     approve.title = pipelineReady?'اعتماد البيانات والأعمال ونشر البروفايل':'النشر قيد التجهيز';
     const reject = make('button', 'رفض الطلب', 'button button-danger'); reject.type = 'button'; reject.disabled = value.status !== 'pending';
+    reject.hidden = reviewMode === 'profile';
     save.disabled = !['pending', 'approved'].includes(value.status);
     actions.append(save, approve, reject); form.append(actions); editor.append(form);
     if(value.status==='approving') {
@@ -277,7 +280,24 @@
       }
     } catch (error) { if (current === epoch) status.textContent = error.message; }
   }
-  document.querySelector('#review-registrations').addEventListener('click', () => { dialog.showModal(); load(); checkDrive(); });
+  document.querySelector('#review-registrations').addEventListener('click', () => {
+    reviewMode = 'requests';document.querySelector('#registrations-title').textContent = 'طلبات التسجيل';
+    dialog.showModal(); load(); checkDrive();
+  });
+  window.addEventListener('cast:registration-profile', async event => {
+    const profileId = event.detail?.profileId;
+    if (!/^registration-[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(profileId || '') || !leave()) return;
+    reviewMode = 'profile';document.querySelector('#registrations-title').textContent = 'بيانات التسجيل الخاصة';
+    const current = ++epoch;list.replaceChildren();editor.replaceChildren();dialog.showModal();
+    status.textContent = 'جاري تحميل بيانات التسجيل الخاصة';
+    checkDrive();
+    try {
+      const data = await request('detail', { id: profileId.slice('registration-'.length) });
+      if (current !== epoch || !dialog.open) return;
+      if (data.record.profileId !== profileId) throw new Error('بيانات التسجيل لا تتطابق مع البروفايل.');
+      render(data.record);status.textContent = 'رقم الواتساب والملاحظات محفوظة للإدارة فقط.';
+    } catch (error) { if (current === epoch) status.textContent = error.message; }
+  });
   document.querySelector('#close-registrations').addEventListener('click', () => { if (leave()) dialog.close(); });
   dialog.addEventListener('cancel', event => { if (!leave()) event.preventDefault(); });
   window.addEventListener('beforeunload', event => {

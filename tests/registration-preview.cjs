@@ -66,6 +66,10 @@ http.createServer(async (req, res) => {
   if (!filename.startsWith(root + path.sep) || !fs.existsSync(filename) || !fs.statSync(filename).isFile()
     || /[\\/]\.(?:env|admin|git|vercel)/.test(filename)) { res.writeHead(404); return res.end(); }
   let content = fs.readFileSync(filename);
+  if (filename.endsWith('cast-data.js')) content = Buffer.from(content.toString() + '\nwindow.castMembers.push(' + JSON.stringify({
+    id:record.profileId,name:record.profile.name,category:'women',folderUrl:record.works.folderUrl,
+    photoUrl:'',age:'26',height:'165',weight:'55',nationality:'',speaking:'متحدثة',displayOrder:0,
+  }) + ');');
   if (filename.endsWith('.js')) content = Buffer.from(content.toString().replace(api, base + '/__fixture/api')
     .replace('https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit', base + '/__fixture/challenge.js'));
   if (filename.endsWith('cast-admin.html')) {
