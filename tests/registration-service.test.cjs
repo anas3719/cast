@@ -190,6 +190,12 @@ test('media signatures allow real ISO compatible brands and leading padding with
   }
   assert.equal(matchesMedia(ftyp('mif1', 'heic'), 'image/heic'), true);
   assert.equal(matchesMedia(ftyp('isom'), 'image/heic'), false);
+  const legacy = Buffer.concat([atom('wide'), atom('mdat', Buffer.alloc(24))]);
+  assert.equal(matchesMedia(legacy, 'video/quicktime'), true);
+  assert.equal(matchesMedia(legacy, 'video/mp4'), false);
+  const movie = atom('moov', atom('mvhd', Buffer.alloc(16)));
+  assert.equal(matchesMedia(movie, 'video/quicktime'), true);
+  assert.equal(matchesMedia(atom('moov', Buffer.from('notvideo')), 'video/quicktime'), false);
 });
 
 test('signed anonymous uploads use the signature-only TUS route without exposing server credentials', async () => {
