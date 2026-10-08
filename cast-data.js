@@ -92,7 +92,8 @@ window.castMembers = [
     "nationality": "سعودي",
     "speaking": "غير متحدث",
     "completedOrder": 17,
-    "note": ""
+    "note": "",
+    "displayOrder": 2
   },
   {
     "id": "yazid-shaldan-boy",
@@ -107,7 +108,8 @@ window.castMembers = [
     "nationality": "فلسطيني",
     "speaking": "متحدث",
     "completedOrder": 21,
-    "note": ""
+    "note": "",
+    "displayOrder": 3
   },
   {
     "id": "lujain-almadani-girl",
@@ -415,7 +417,8 @@ window.castMembers = [
     "weight": "",
     "nationality": "",
     "speaking": "",
-    "note": ""
+    "note": "",
+    "displayOrder": 4
   },
   {
     "id": "rama-girl",
@@ -551,7 +554,8 @@ window.castMembers = [
     "nationality": "سعودي",
     "speaking": "متحدث",
     "completedOrder": 30,
-    "note": ""
+    "note": "",
+    "displayOrder": 5
   },
   {
     "id": "saif-alghamdi-20",
@@ -752,7 +756,8 @@ window.castMembers = [
     "nationality": "سعودي",
     "speaking": "متحدث",
     "completedOrder": 24,
-    "note": ""
+    "note": "",
+    "displayOrder": 6
   },
   {
     "id": "maher-20",
@@ -976,7 +981,8 @@ window.castMembers = [
     "weight": "40",
     "nationality": "",
     "speaking": "متحدث",
-    "note": ""
+    "note": "",
+    "displayOrder": 7
   },
   {
     "id": "maria-emad-girl",
@@ -1112,7 +1118,8 @@ window.castMembers = [
     "nationality": "سعودي",
     "speaking": "متحدث",
     "completedOrder": 28,
-    "note": ""
+    "note": "",
+    "displayOrder": 8
   },
   {
     "id": "mohammed-alshareef-boy",
@@ -1127,7 +1134,8 @@ window.castMembers = [
     "nationality": "سعودي",
     "speaking": "متحدث",
     "completedOrder": 29,
-    "note": ""
+    "note": "",
+    "displayOrder": 9
   },
   {
     "id": "wafaa-alsaleh-makeup",
@@ -1150,7 +1158,8 @@ window.castMembers = [
     "nationality": "يمني",
     "speaking": "متحدث",
     "completedOrder": 32,
-    "note": ""
+    "note": "",
+    "displayOrder": 10
   },
   {
     "id": "shayla-ahmed-girl",
@@ -1222,5 +1231,19 @@ window.castMembers = [
     "nationality": "يمني",
     "speaking": "متحدث",
     "displayOrder": 2
+  },
+  {
+    "id": "registration-6ee33007-0ba7-4768-a6c4-e84abfa75bf0",
+    "name": "زياد فايز هادي",
+    "category": "boys",
+    "folderUrl": "https://drive.google.com/drive/folders/1xTC16KIPqNkhucreOF6GzbrRU3F1S5ZZ",
+    "photoUrl": "https://drive.google.com/thumbnail?id=1VpdEW1s1W59AXQhp8xHBCJ6yfG2vRwqG&sz=w1000",
+    "imageTitle": "صورة البروفايل",
+    "age": "9",
+    "height": "139",
+    "weight": "29",
+    "nationality": "يمني",
+    "speaking": "متحدث",
+    "displayOrder": 1
   }
 ];
