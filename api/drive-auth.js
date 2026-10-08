@@ -1,5 +1,6 @@
 const { crypto, common, json, seal, unseal, SERVICE, ORIGIN, RETURN_URL } = require('../lib/admin-auth.cjs');
 const drive = require('../lib/drive-auth.cjs');
+const destinations = require('../lib/drive-destinations.cjs');
 const COOKIE = '__Host-cast-drive';
 function cookie(res, value, age = 600) {
   res.setHeader('Set-Cookie', `${COOKIE}=${value}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${age}`);
@@ -19,7 +20,8 @@ module.exports = async (req, res) => {
         await drive.connection(req.body.connection);
         return json(res, 200, { valid: true });
       }
-      const request = await seal({ authorization: req.headers.authorization }, 'cast-drive-start', '2m');
+      const request = await seal({ authorization: req.headers.authorization,
+        official: url.searchParams.get('destination') === 'official' }, 'cast-drive-start', '2m');
       return json(res, 200, { url: `${SERVICE}/api/drive-auth?action=start&request=${encodeURIComponent(request)}` });
     } catch { return json(res, 503, { message: 'لم يكتمل إعداد ربط الدرايف بعد.' }); }
   }
@@ -29,10 +31,10 @@ module.exports = async (req, res) => {
       await drive.requireOwner({ headers: { authorization: input.authorization } });
       const state = crypto.randomBytes(32).toString('hex');
       const verifier = crypto.randomBytes(32).toString('base64url');
-      const flow = await seal({ state, verifier, authorization: input.authorization }, 'cast-drive-state', '10m');
+      const flow = await seal({ state, verifier, authorization: input.authorization, official: input.official === true }, 'cast-drive-state', '10m');
       if (flow.length > 3700) throw new Error('Cookie capacity exceeded');
       cookie(res, flow);
-      return redirect(res, drive.authorizationUrl(drive.client(), state, verifier));
+      return redirect(res, drive.authorizationUrl(drive.client(), state, verifier, input.official === true));
     } catch { cookie(res, '', 0); return redirect(res, `${RETURN_URL}#cast-drive=failed`); }
   }
   if (action === 'callback' && req.method === 'GET') {
@@ -50,13 +52,17 @@ module.exports = async (req, res) => {
       }
       phase = 'owner';
       await drive.requireOwner({ headers: { authorization: flow.authorization } });
+      const pickedIds = flow.official ? (url.searchParams.get('picked_file_ids') || '').split(',') : null;
+      if (flow.official && !destinations.validSelection(pickedIds)) {
+        failure = 'folders'; throw new Error('Official folders not selected');
+      }
       phase = 'exchange';
       const { tokens } = await drive.client().getToken({ code: url.searchParams.get('code'),
         codeVerifier: flow.verifier, redirect_uri: drive.CALLBACK });
       phase = 'grant';
       const protectedConnection = await drive.protect(tokens);
       phase = 'store';
-      await drive.saveConnection(flow.authorization, protectedConnection);
+      await drive.saveConnection(flow.authorization, protectedConnection, pickedIds);
       return redirect(res, `${RETURN_URL}#cast-drive=connected`);
     } catch (error) {
       if (phase === 'state' && error.code === 'ERR_JWT_EXPIRED') failure = 'expired';

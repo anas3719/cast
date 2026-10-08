@@ -20,6 +20,63 @@ test('Google authorization uses the fixed callback and only drive.file with PKCE
   assert.equal(url.searchParams.get('include_granted_scopes'), 'false');
   assert.equal(url.searchParams.get('code_challenge_method'), 'S256');
 });
+test('official folder picker is restricted to the seven known folders and the existing scope',()=>{
+  const destinations=require('../lib/drive-destinations.cjs');
+  const url=new URL(drive.authorizationUrl(drive.client(),'state','verifier',true));
+  assert.equal(url.searchParams.get('trigger_onepick'),'true');
+  assert.equal(url.searchParams.get('allow_folder_selection'),'true');
+  assert.equal(url.searchParams.get('allow_multiple'),'true');
+  assert.equal(url.searchParams.get('mimetypes'),'application/vnd.google-apps.folder');
+  assert.deepEqual(url.searchParams.get('file_ids').split(','),destinations.FILE_IDS);
+  assert.equal(url.searchParams.get('scope'),drive.SCOPE);
+  assert.equal(destinations.validSelection([...destinations.FILE_IDS].reverse()),true);
+  for(const ids of [[],destinations.FILE_IDS.slice(1),[...destinations.FILE_IDS,'other-folder'],
+    [...destinations.FILE_IDS.slice(1),destinations.FILE_IDS[1]]])assert.equal(destinations.validSelection(ids),false);
+});
+test('database destination mapping matches the shared configuration and remains backend-only',()=>{
+  const destinations=require('../lib/drive-destinations.cjs');
+  const sql=require('node:fs').readFileSync('docs/registration-destinations-schema.sql','utf8');
+  assert.ok(sql.includes(destinations.ROOT));assert.ok(sql.includes(JSON.stringify(destinations.CATEGORIES)));
+  assert.ok(sql.includes('security invoker'));
+  assert.ok(sql.includes('from public,anon,authenticated'));
+  assert.ok(sql.includes('to service_role'));
+  assert.ok(sql.includes('for update'));
+});
+test('missing or different picked folders cannot replace the saved connection or exchange a code',async()=>{
+  const originalFetch=global.fetch,originalExchange=OAuth2Client.prototype.getToken,originalWarn=console.warn;
+  let exchanges=0,stores=0;
+  global.fetch=async url=>{if(url==='https://api.github.com/user')return Response.json({id:OWNER_ID});stores++;throw Error('No storage allowed');};
+  OAuth2Client.prototype.getToken=async()=>{exchanges++;return {tokens};};console.warn=()=>{};
+  try {
+    const authorization='Bearer '+await seal({sub:OWNER_ID,accessToken:'synthetic',accessExpires:Date.now()+3600000},'cast-session');
+    const cookie=await seal({state:'expected',verifier:'verifier',authorization,official:true},'cast-drive-state','10m');
+    for(const picked of ['', 'wrong-folder']) {
+      const response=res();await handler({url:'/api/drive-auth?action=callback&state=expected&code=synthetic&picked_file_ids='+picked,
+        method:'GET',headers:{cookie:'__Host-cast-drive='+cookie}},response);
+      assert.ok(response.headers.Location.endsWith('cast-drive-reason=folders'));
+    }
+    assert.equal(exchanges,0);assert.equal(stores,0);
+  } finally {global.fetch=originalFetch;OAuth2Client.prototype.getToken=originalExchange;console.warn=originalWarn;}
+});
+test('official callback binds the selected IDs to server-side storage without returning credentials',async()=>{
+  const originalFetch=global.fetch,originalExchange=OAuth2Client.prototype.getToken;
+  const destinations=require('../lib/drive-destinations.cjs');let stored=false;
+  global.fetch=async(url,options)=>{
+    if(url==='https://api.github.com/user')return Response.json({id:OWNER_ID});
+    const body=JSON.parse(options.body);assert.equal(body.destination,'official');
+    assert.deepEqual(body.pickedIds,destinations.FILE_IDS);assert.ok(!body.connection.includes('PRIVATE'));
+    stored=true;return Response.json({connected:true,destination:'official'});
+  };
+  OAuth2Client.prototype.getToken=async()=>({tokens});
+  try {
+    const authorization='Bearer '+await seal({sub:OWNER_ID,accessToken:'synthetic',accessExpires:Date.now()+3600000},'cast-session');
+    const cookie=await seal({state:'expected',verifier:'verifier',authorization,official:true},'cast-drive-state','10m');
+    const response=res();await handler({url:'/api/drive-auth?action=callback&state=expected&code=synthetic&picked_file_ids='+destinations.FILE_IDS.join(','),
+      method:'GET',headers:{cookie:'__Host-cast-drive='+cookie}},response);
+    assert.equal(stored,true);assert.ok(response.headers.Location.endsWith('cast-drive=connected'));
+    assert.ok(!JSON.stringify(response).includes('PRIVATE'));
+  } finally {global.fetch=originalFetch;OAuth2Client.prototype.getToken=originalExchange;}
+});
 test('connection is encrypted, rejects broad grants, missing refresh and changed clients', async () => {
   assert.equal(drive.limited(tokens), true);
   for (const candidate of [{ ...tokens, scope: `${drive.SCOPE} https://www.googleapis.com/auth/drive` },

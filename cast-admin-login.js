@@ -54,9 +54,9 @@
     get returned() { return returned; },
     get error() { return error; },
     refresh, clear,
-    async connectDrive() {
+    async connectDrive(official = false) {
       if (!await refresh()) throw new Error('سجّل الدخول بحساب GitHub أولًا.');
-      const response = await fetch(`${service}/api/drive-auth?action=prepare`, {
+      const response = await fetch(`${service}/api/drive-auth?action=prepare${official ? '&destination=official' : ''}`, {
         method: 'POST', cache: 'no-store', headers: { Authorization: `Bearer ${session}` },
       });
       const data = await response.json();

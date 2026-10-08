@@ -95,6 +95,23 @@ shared folder containing the applicant's contact record.
 - Owner approved an independent app-created root named
   "الكاست - التسجيلات المعتمدة", containing the six cast categories. No existing
   customer folders need to be selected or accessed. Use only drive.file scope.
+
+### Primary folder linking (2026-10-08)
+
+- The owner now requests saving inside the six original cast categories.
+  `lib/drive-destinations.json` binds their verified IDs and the previous
+  app-created category IDs. No other Drive destinations are accepted.
+- OAuth uses Google's `trigger_onepick` flow with `drive.file`, PKCE and
+  the fixed seven-folder filter. The callback requires exactly those IDs;
+  the server independently verifies each category's parent and add-child
+  capability before storing the new encrypted connection.
+- `cast_set_official_drive` locks the same integration row as approval startup,
+  refuses active jobs, and is executable only by the backend service role.
+- Existing approved app-owned person folders move by verified parent ID,
+  retaining their IDs, names, media and public links. Retries reconcile the
+  destination; unrelated folders are never moved and missing folders are not
+  recreated by migration. The previous root is retained, not deleted.
+- Google reference: https://developers.google.com/workspace/drive/picker/guides/desktop-mobile-picker
   OAuth project anas-cast-registration has Drive API enabled and branding saved;
   its web client uses the cast-admin backend callback, not a portfolio callback.
   Google credentials stay encrypted in a server-only integration table.

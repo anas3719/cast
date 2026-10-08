@@ -91,7 +91,7 @@ test('official destination folders are verified without renaming or altering exi
     if(options.method==='POST') { writes.push(JSON.parse(options.body));return Response.json({id:value.folderId}); }
     assert.equal(options.method,undefined);
     if(url.includes('/'+value.folderId+'?'))return new Response(null,{status:404});
-    return Response.json({mimeType:'application/vnd.google-apps.folder',parents:[destinations.ROOT]});
+    return Response.json({mimeType:'application/vnd.google-apps.folder',parents:[destinations.ROOT],capabilities:{canAddChildren:true}});
   }});
   await service.step({action:'folders',grant:await grant(value)});
   assert.equal(writes.length,1);
@@ -109,6 +109,50 @@ test('inaccessible or wrongly mapped official folders fail closed without creati
     await assert.rejects(service.step({action:'folders',grant:await grant(value)}));
     assert.equal(writes,0);
   }
+});
+test('approved folder migration preserves IDs and names, changes only verified parents, and is idempotent',async()=>{
+  const destinations=require('../lib/drive-destinations.cjs');const original=global.fetch;
+  global.fetch=async()=>Response.json({id:OWNER_ID});
+  let moved=false,writes=0;
+  try {
+    const sealed=await unseal(await grant(),'cast-approval-job');
+    const service=createApprovalService({makeClient,fetcher:async(url,options)=>{
+      if(options.method==='PATCH') {
+        assert.equal(new URL(url).searchParams.get('addParents'),destinations.CATEGORIES.men);
+        assert.equal(new URL(url).searchParams.get('removeParents'),destinations.LEGACY_CATEGORIES.men);
+        assert.deepEqual(JSON.parse(options.body),{name:'Existing owner name'});
+        moved=true;writes++;return Response.json({id:plan().folderId});
+      }
+      assert.equal(options.method,undefined);
+      if(url.includes('/'+plan().folderId+'?'))return Response.json({name:'Existing owner name',mimeType:'application/vnd.google-apps.folder',
+        parents:[moved?destinations.CATEGORIES.men:destinations.LEGACY_CATEGORIES.men],appProperties:{anasCastRegistration:requestId}});
+      return Response.json({mimeType:'application/vnd.google-apps.folder',parents:[destinations.ROOT],capabilities:{canAddChildren:true}});
+    }});
+    const body={action:'migrate',connection:sealed.connection,records:[{id:requestId,folderId:plan().folderId,category:'men'}]};
+    const req={headers:{origin:'https://anas3719.github.io',authorization:sealed.owner}};
+    assert.deepEqual(await service.authorize(req,body),{migrated:1});assert.equal(writes,1);
+    assert.deepEqual(await service.authorize(req,body),{migrated:1});assert.equal(writes,1);
+  } finally {global.fetch=original;}
+});
+test('migration cannot move an unrelated folder, remove unrelated parents, or bypass read-only categories',async()=>{
+  const destinations=require('../lib/drive-destinations.cjs');const original=global.fetch;
+  global.fetch=async()=>Response.json({id:OWNER_ID});
+  try {
+    const sealed=await unseal(await grant(),'cast-approval-job');
+    for(const reason of ['marker','parent','readonly']) {
+      let writes=0;
+      const service=createApprovalService({makeClient,fetcher:async(url,options)=>{
+        if(options.method)writes++;
+        if(url.includes('/'+plan().folderId+'?'))return Response.json({name:'Keep',mimeType:'application/vnd.google-apps.folder',
+          parents:[reason==='parent'?'unrelated-folder-0001':destinations.LEGACY_CATEGORIES.men],
+          appProperties:{anasCastRegistration:reason==='marker'?jobId:requestId}});
+        return Response.json({mimeType:'application/vnd.google-apps.folder',parents:[destinations.ROOT],capabilities:{canAddChildren:reason!=='readonly'}});
+      }});
+      await assert.rejects(service.authorize({headers:{origin:'https://anas3719.github.io',authorization:sealed.owner}},
+        {action:'migrate',connection:sealed.connection,records:[{id:requestId,folderId:plan().folderId,category:'men'}]}));
+      assert.equal(writes,0);
+    }
+  } finally {global.fetch=original;}
 });
 test('grant manifests and transport reject private fields, oversized files and SSRF',()=>{
   assert.equal(CHUNK,8*1024*1024);

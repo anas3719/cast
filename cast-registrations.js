@@ -19,9 +19,30 @@
   const driveButton = document.createElement('button');
   driveButton.type = 'button'; driveButton.className = 'button button-secondary';
   driveButton.textContent = 'ربط الدرايف';
+  const officialButton = document.createElement('button');
+  officialButton.type = 'button'; officialButton.className = 'button button-secondary'; officialButton.hidden = true;
+  const folderIcon = document.createElement('i'); folderIcon.dataset.lucide = 'folder-symlink'; folderIcon.setAttribute('aria-hidden','true');
+  const officialLabel = document.createElement('span'); officialLabel.textContent = 'ربط المجلدات الأساسية';
+  officialButton.append(folderIcon,officialLabel);
+  let officialConfigured = false, migrating = false;
   const driveStatus = document.createElement('p');
   driveStatus.setAttribute('role', 'status');
   signIn.after(driveButton, driveStatus);
+  driveButton.after(officialButton);
+  async function syncApprovedFolders() {
+    if (migrating) return;
+    migrating = true; officialButton.disabled = true;
+    driveStatus.textContent = 'جاري ترتيب الملفات المعتمدة في المجلدات الأساسية';
+    try {
+      let offset = 0, total = 0;
+      do {
+        const result = await request('drive-migrate',{offset});
+        total += result.migrated; offset = result.nextOffset;
+      } while (offset !== null);
+      driveStatus.textContent = 'الحفظ في مجلدات الكاست الأساسية · تم التحقق من '+total+' ملف معتمد';
+    } catch (error) { driveStatus.textContent = 'الحفظ في المجلدات الأساسية مفعّل، لكن لم تكتمل مزامنة الملفات السابقة. '+error.message; }
+    finally { migrating = false; officialButton.disabled = false; }
+  }
   const driveFragment = new URLSearchParams(location.hash.slice(1));
   let driveReturn = driveFragment.get('cast-drive');
   const driveFailure = driveFragment.get('cast-drive-reason');
@@ -35,6 +56,10 @@
     try {
       const state = await request('drive-status');
       pipelineReady=state.connected && state.approvalReady;
+      officialConfigured = state.officialFoldersConfigured === true;
+      officialButton.hidden = !state.connected;
+      officialLabel.textContent = officialConfigured ? 'مزامنة الملفات المعتمدة' : 'ربط المجلدات الأساسية';
+      window.lucide?.createIcons();
       const approve=document.querySelector('#registration-approve');
       if(approve && record && !writing && !uncertain)approve.disabled=!canApprove(record);
       driveStatus.textContent = state.connected
@@ -44,17 +69,26 @@
       if (driveReturn === 'failed') {
         driveStatus.textContent = ['expired', 'expired-or-missing'].includes(driveFailure)
           ? 'انتهت جلسة الربط أو لم تصل إلى الخدمة. اضغط ربط الدرايف وأكمل الموافقة خلال 10 دقائق في نفس تبويب Chrome.'
+          : driveFailure === 'folders' ? 'لم تُحدد المجلدات الأساسية السبعة. لم يتغير مسار الحفظ.'
           : driveFailure === 'denied' ? 'لم تُمنح صلاحية الدرايف. لم يُفعّل النشر.'
             : 'لم يكتمل الربط المحدود. لم يُفعّل النشر.';
       }
       else if (driveReturn === 'connected' && !state.connected) driveStatus.textContent = 'لم يتم تأكيد حفظ الربط بعد.';
       driveButton.textContent = state.connected ? 'إعادة ربط الدرايف' : 'ربط الدرايف';
+      if (driveReturn === 'connected' && officialConfigured) await syncApprovedFolders();
       driveReturn = null;
     } catch (error) { driveStatus.textContent = error.message; }
   }
   driveButton.addEventListener('click', async () => {
     if (!leave()) return;
     try { await login.connectDrive(); }
+    catch (error) { driveStatus.textContent = error.message; }
+  });
+  officialButton.addEventListener('click', async () => {
+    if (!leave()) return;
+    if (officialConfigured) return syncApprovedFolders();
+    dirty = false;
+    try { await login.connectDrive(true); }
     catch (error) { driveStatus.textContent = error.message; }
   });
   const make = (tag, text, className) => {
