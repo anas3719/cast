@@ -27,7 +27,7 @@ window.castMembers = [
     "weight": "89",
     "nationality": "سعودي",
     "speaking": "متحدث",
-    "displayOrder": 4,
+    "displayOrder": 5,
     "pinnedOrder": 2,
     "completedOrder": 0,
     "note": ""
@@ -44,7 +44,7 @@ window.castMembers = [
     "weight": "75",
     "nationality": "سعودي",
     "speaking": "متحدث",
-    "displayOrder": 35,
+    "displayOrder": 36,
     "pinnedOrder": 3,
     "completedOrder": 26,
     "note": ""
@@ -61,7 +61,7 @@ window.castMembers = [
     "weight": "70",
     "nationality": "",
     "speaking": "متحدث",
-    "displayOrder": 34,
+    "displayOrder": 35,
     "note": ""
   },
   {
@@ -138,7 +138,7 @@ window.castMembers = [
     "weight": "80",
     "nationality": "مصري",
     "speaking": "غير متحدث",
-    "displayOrder": 33,
+    "displayOrder": 34,
     "completedOrder": 19,
     "note": ""
   },
@@ -154,7 +154,7 @@ window.castMembers = [
     "weight": "76",
     "nationality": "فلسطيني",
     "speaking": "غير متحدث",
-    "displayOrder": 32,
+    "displayOrder": 33,
     "completedOrder": 22,
     "note": ""
   },
@@ -170,7 +170,7 @@ window.castMembers = [
     "weight": "",
     "nationality": "",
     "speaking": "",
-    "displayOrder": 31,
+    "displayOrder": 32,
     "note": ""
   },
   {
@@ -185,7 +185,7 @@ window.castMembers = [
     "weight": "77",
     "nationality": "فلسطيني",
     "speaking": "متحدث",
-    "displayOrder": 30,
+    "displayOrder": 31,
     "completedOrder": 6,
     "note": ""
   },
@@ -201,7 +201,7 @@ window.castMembers = [
     "weight": "100",
     "nationality": "فلسطيني",
     "speaking": "متحدث",
-    "displayOrder": 29,
+    "displayOrder": 30,
     "completedOrder": 8,
     "note": ""
   },
@@ -217,7 +217,7 @@ window.castMembers = [
     "weight": "70",
     "nationality": "سعودي",
     "speaking": "متحدث",
-    "displayOrder": 28,
+    "displayOrder": 29,
     "completedOrder": 15,
     "note": ""
   },
@@ -264,7 +264,7 @@ window.castMembers = [
     "weight": "",
     "nationality": "",
     "speaking": "",
-    "displayOrder": 27,
+    "displayOrder": 28,
     "note": ""
   },
   {
@@ -308,7 +308,7 @@ window.castMembers = [
     "weight": "",
     "nationality": "",
     "speaking": "",
-    "displayOrder": 26,
+    "displayOrder": 27,
     "note": ""
   },
   {
@@ -338,7 +338,7 @@ window.castMembers = [
     "weight": "75",
     "nationality": "يمني",
     "speaking": "متحدث",
-    "displayOrder": 25,
+    "displayOrder": 26,
     "completedOrder": 3,
     "note": ""
   },
@@ -369,7 +369,7 @@ window.castMembers = [
     "weight": "78",
     "nationality": "سعودي",
     "speaking": "متحدث",
-    "displayOrder": 24,
+    "displayOrder": 25,
     "completedOrder": 7,
     "note": ""
   },
@@ -509,7 +509,7 @@ window.castMembers = [
     "weight": "",
     "nationality": "",
     "speaking": "",
-    "displayOrder": 23,
+    "displayOrder": 24,
     "note": ""
   },
   {
@@ -569,7 +569,7 @@ window.castMembers = [
     "weight": "80",
     "nationality": "سعودي",
     "speaking": "متحدث",
-    "displayOrder": 6,
+    "displayOrder": 7,
     "completedOrder": 34,
     "note": ""
   },
@@ -585,7 +585,7 @@ window.castMembers = [
     "weight": "47",
     "nationality": "يمني",
     "speaking": "غير متحدث",
-    "displayOrder": 22,
+    "displayOrder": 23,
     "completedOrder": 13,
     "note": ""
   },
@@ -601,7 +601,7 @@ window.castMembers = [
     "weight": "",
     "nationality": "",
     "speaking": "",
-    "displayOrder": 21,
+    "displayOrder": 22,
     "note": ""
   },
   {
@@ -616,7 +616,7 @@ window.castMembers = [
     "weight": "80",
     "nationality": "يضاف لاحقًا",
     "speaking": "متحدث",
-    "displayOrder": 7,
+    "displayOrder": 8,
     "completedOrder": 4,
     "note": ""
   },
@@ -632,7 +632,7 @@ window.castMembers = [
     "weight": "",
     "nationality": "",
     "speaking": "",
-    "displayOrder": 20,
+    "displayOrder": 21,
     "note": ""
   },
   {
@@ -647,7 +647,7 @@ window.castMembers = [
     "weight": "71",
     "nationality": "يمني",
     "speaking": "غير متحدث",
-    "displayOrder": 19,
+    "displayOrder": 20,
     "completedOrder": 14,
     "note": ""
   },
@@ -663,7 +663,7 @@ window.castMembers = [
     "weight": "90",
     "nationality": "سعودي",
     "speaking": "متحدث",
-    "displayOrder": 18,
+    "displayOrder": 19,
     "completedOrder": 5,
     "note": "اقل مبلغ للساعة 500 ريال"
   },
@@ -694,7 +694,7 @@ window.castMembers = [
     "weight": "83",
     "nationality": "فلسطيني",
     "speaking": "متحدث",
-    "displayOrder": 17,
+    "displayOrder": 18,
     "completedOrder": 2,
     "note": ""
   },
@@ -710,7 +710,7 @@ window.castMembers = [
     "weight": "60",
     "nationality": "يمني",
     "speaking": "متحدث",
-    "displayOrder": 16,
+    "displayOrder": 17,
     "completedOrder": 11,
     "note": ""
   },
@@ -771,7 +771,7 @@ window.castMembers = [
     "weight": "84",
     "nationality": "فلسطيني",
     "speaking": "متحدث",
-    "displayOrder": 15,
+    "displayOrder": 16,
     "completedOrder": 9,
     "note": ""
   },
@@ -787,7 +787,7 @@ window.castMembers = [
     "weight": "71",
     "nationality": "اردني",
     "speaking": "متحدث",
-    "displayOrder": 14,
+    "displayOrder": 15,
     "completedOrder": 10,
     "note": ""
   },
@@ -803,7 +803,7 @@ window.castMembers = [
     "weight": "",
     "nationality": "",
     "speaking": "",
-    "displayOrder": 13,
+    "displayOrder": 14,
     "note": ""
   },
   {
@@ -906,7 +906,7 @@ window.castMembers = [
     "weight": "",
     "nationality": "",
     "speaking": "",
-    "displayOrder": 12,
+    "displayOrder": 13,
     "note": ""
   },
   {
@@ -1040,7 +1040,7 @@ window.castMembers = [
     "weight": "73",
     "nationality": "",
     "speaking": "متحدث",
-    "displayOrder": 11,
+    "displayOrder": 12,
     "note": ""
   },
   {
@@ -1055,7 +1055,7 @@ window.castMembers = [
     "weight": "80",
     "nationality": "اردني",
     "speaking": "متحدث",
-    "displayOrder": 10,
+    "displayOrder": 11,
     "completedOrder": 27,
     "note": ""
   },
@@ -1071,7 +1071,7 @@ window.castMembers = [
     "weight": "50",
     "nationality": "",
     "speaking": "متحدث",
-    "displayOrder": 9,
+    "displayOrder": 10,
     "note": ""
   },
   {
@@ -1086,7 +1086,7 @@ window.castMembers = [
     "weight": "70",
     "nationality": "",
     "speaking": "",
-    "displayOrder": 8,
+    "displayOrder": 9,
     "note": ""
   },
   {
@@ -1101,7 +1101,7 @@ window.castMembers = [
     "weight": "60",
     "nationality": "يمني",
     "speaking": "متحدث",
-    "displayOrder": 5,
+    "displayOrder": 6,
     "completedOrder": 31,
     "note": ""
   },
@@ -1203,7 +1203,7 @@ window.castMembers = [
     "weight": "60",
     "nationality": "اليمن",
     "speaking": "غير متحدث",
-    "displayOrder": 3,
+    "displayOrder": 4,
     "approvalOrder": 1791470526413
   },
   {
@@ -1233,7 +1233,7 @@ window.castMembers = [
     "weight": "65",
     "nationality": "يمني",
     "speaking": "متحدث",
-    "displayOrder": 2,
+    "displayOrder": 3,
     "approvalOrder": 1791470624321
   },
   {
@@ -1280,5 +1280,21 @@ window.castMembers = [
     "speaking": "غير متحدثة",
     "approvalOrder": 1791634518166,
     "displayOrder": 1
+  },
+  {
+    "id": "hamed-fahad",
+    "name": "حامد فهد",
+    "category": "men",
+    "folderUrl": "https://drive.google.com/drive/folders/1BhmtXpkReq_BHs6lOuRtyarda9GzlPj2",
+    "photoUrl": "https://drive.google.com/thumbnail?id=1CqQb_onfgIa_S4AUO2WEc6UEvK3SpzTi&sz=w1000",
+    "imageTitle": "IMG-20261023-WA0006.jpg",
+    "age": "",
+    "height": "",
+    "weight": "",
+    "nationality": "",
+    "speaking": "",
+    "displayOrder": 2,
+    "approvalOrder": 1792711971203,
+    "note": ""
   }
 ];
