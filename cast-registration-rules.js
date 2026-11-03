@@ -40,7 +40,11 @@
   }
 
   function phone(value) {
-    const normalized = normalizeDigits(value).replace(/[\s()-]/g, "").replace(/^00/, "+");
+    let normalized = normalizeDigits(value).replace(/[\s()\-\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/g, "");
+    if (/^05\d{8}$/.test(normalized)) normalized = "+966" + normalized.slice(1);
+    else if (/^5\d{8}$/.test(normalized)) normalized = "+966" + normalized;
+    else if (/^[1-9]\d{7,14}$/.test(normalized)) normalized = "+" + normalized;
+    else normalized = normalized.replace(/^00/, "+");
     return /^\+[1-9]\d{7,14}$/.test(normalized) ? normalized : "";
   }
 
@@ -72,7 +76,7 @@
     if (profile.nationality.length > 80) errors.nationality = "الجنسية أطول من الحد المسموح";
     if (!["yes", "no"].includes(profile.speaking)) errors.speaking = "حدد متحدث أو غير متحدث";
     const whatsapp = phone(input.whatsapp);
-    if (!whatsapp) errors.whatsapp = "أدخل رقم واتساب مع رمز الدولة، مثل +966";
+    if (!whatsapp) errors.whatsapp = "أدخل رقم واتساب صحيحًا؛ السعودي يبدأ بـ 05، ولغير السعودي أضف مفتاح الدولة";
     const mode = input.worksMode;
     const folderUrl = mode === "drive" ? driveFolder(input.folderUrl) : "";
     if (!["drive", "upload"].includes(mode)) errors.worksMode = "حدد طريقة إضافة الأعمال";

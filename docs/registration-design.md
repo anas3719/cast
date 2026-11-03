@@ -17,7 +17,10 @@ Scope: anas3719/cast only. Do not modify the portfolio repository.
 ## Applicant Form
 
 - Required: name, gender (male/female), age, height in cm, weight in kg,
-  speaking (yes/no), international WhatsApp number and one portrait image.
+  speaking (yes/no), WhatsApp number and one portrait image.
+- Saudi mobile numbers accept local 05xxxxxxxx or 5xxxxxxxx and normalize to
+  +9665xxxxxxxx. International numbers accept +, 00, or a country-code prefix.
+  Numbers in Arabic/Persian digits and pasted direction marks are normalized.
 - Optional: nationality. No red asterisks; use labels and inline validation.
 - Arabic and Persian digits are normalized without silently accepting units.
 - No additional guardian workflow, as explicitly requested by the owner.

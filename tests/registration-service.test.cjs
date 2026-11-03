@@ -10,6 +10,38 @@ const response = () => ({ statusCode: 0, setHeader() {}, end(body) { this.body =
 const req = body => new Request('https://vmnkdbceyqudcxddvljx.supabase.co/functions/v1/cast-registration', {
   method: 'POST', headers: { Origin: ORIGIN, 'Content-Type': 'application/json' }, body: JSON.stringify(body),
 });
+test('intake stores normalized local or international contact without exposing it in its receipt', async () => {
+  const { createRegistrationHandler } = await import('../lib/registration-handler.mjs');
+  for (const whatsapp of ['0500000000', '500000000', '+966500000000', '00966500000000', '966500000000']) {
+    let stored, captchaCalls = 0;
+    const handler = createRegistrationHandler({ rules,
+      db: { rpc: async (name, args) => {
+        assert.equal(name, 'cast_reserve_registration');
+        stored = args.fields.whatsapp;
+        return { data: null };
+      } },
+      env: name => ({ SUPABASE_URL: 'https://vmnkdbceyqudcxddvljx.supabase.co',
+        REGISTRATION_OPEN: 'true', APPROVAL_PIPELINE_READY: 'true',
+        TURNSTILE_SECRET: 'synthetic-secret', SUPABASE_SERVICE_ROLE_KEY: 'synthetic-key' })[name] || '',
+      fetcher: async url => {
+        assert.equal(url, 'https://challenges.cloudflare.com/turnstile/v0/siteverify');
+        captchaCalls++;
+        return Response.json({ success: true, hostname: 'anas3719.github.io', action: 'cast-register' });
+      },
+    });
+    const id = '12345678-1234-4123-8123-123456789abc';
+    const result = await handler(req({ action: 'create', id, ticket: 'a'.repeat(64), challenge: 'synthetic-challenge',
+      fields: { name: 'اختبار محلي فقط', gender: 'male', age: '25', height: '175', weight: '70',
+        nationality: '', speaking: 'yes', whatsapp, worksMode: 'upload' },
+      files: Array.from({ length: 3 }, (_, index) => ({ name: `synthetic-${index}.jpg`, type: 'image/jpeg', size: 1000 })),
+    }));
+    assert.equal(result.status, 200, whatsapp);
+    assert.equal(stored, '+966500000000');
+    assert.equal(captchaCalls, 1);
+    assert.deepEqual(await result.json(), { id, status: 'uploading' });
+  }
+});
+
 test('review list excludes published registrations without deleting their private records',async()=>{
   const {createRegistrationHandler}=await import('../lib/registration-handler.mjs');
   let statuses,selected,limit,ordered;

@@ -44,11 +44,23 @@ test('required fields and optional nationality, including Arabic numerals', () =
   assert.equal(rules.validate({ ...fields(), weight: 0 }).valid, false);
 });
 
-test('international private phone; reject ambiguous local numbers', () => {
+test('Saudi local and international private phones normalize to international format', () => {
+  for (const value of ['0500000000', '500000000', '+966500000000', '966500000000',
+    '00966500000000', '٠٥٠٠٠٠٠٠٠٠', '۰۵۰۰۰۰۰۰۰۰', ' 050 (000)-0000 ', '\u200f0500000000\u200e']) {
+    assert.equal(rules.phone(value), '+966500000000', value);
+  }
   assert.equal(rules.phone('٠٠٩٦٦ ٥٩٩-٠٠٠-٠٠٠'), '+966599000000');
   assert.equal(rules.phone('+20 100 000 0000'), '+201000000000');
-  assert.equal(rules.phone('0599000000'), '');
-  assert.equal(rules.phone('+0123456789'), '');
+  assert.equal(rules.phone('201000000000'), '+201000000000');
+  for (const value of ['', '050000000', '05000000000', '+0123456789', '0123456789',
+    '+1234567', '+1234567890123456', '0500000000abc', '++966500000000']) {
+    assert.equal(rules.phone(value), '', value);
+    assert.equal(rules.validate({ ...fields(), whatsapp: value }).valid, false, value);
+  }
+  const local = rules.validate({ ...fields(), whatsapp: '0500000000' });
+  assert.equal(local.valid, true);
+  assert.equal(local.privateContact.whatsapp, '+966500000000');
+  assert.equal(rules.phone(local.privateContact.whatsapp), local.privateContact.whatsapp);
 });
 
 test('only genuine HTTPS Drive folder links are accepted', () => {
