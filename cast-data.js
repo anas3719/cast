@@ -93,7 +93,7 @@ window.castMembers = [
     "speaking": "غير متحدث",
     "completedOrder": 17,
     "note": "",
-    "displayOrder": 2
+    "displayOrder": 3
   },
   {
     "id": "yazid-shaldan-boy",
@@ -109,7 +109,7 @@ window.castMembers = [
     "speaking": "متحدث",
     "completedOrder": 21,
     "note": "",
-    "displayOrder": 3
+    "displayOrder": 4
   },
   {
     "id": "lujain-almadani-girl",
@@ -418,7 +418,7 @@ window.castMembers = [
     "nationality": "",
     "speaking": "",
     "note": "",
-    "displayOrder": 4
+    "displayOrder": 5
   },
   {
     "id": "rama-girl",
@@ -555,7 +555,7 @@ window.castMembers = [
     "speaking": "متحدث",
     "completedOrder": 30,
     "note": "",
-    "displayOrder": 5
+    "displayOrder": 6
   },
   {
     "id": "saif-alghamdi-20",
@@ -757,7 +757,7 @@ window.castMembers = [
     "speaking": "متحدث",
     "completedOrder": 24,
     "note": "",
-    "displayOrder": 6
+    "displayOrder": 7
   },
   {
     "id": "maher-20",
@@ -982,7 +982,7 @@ window.castMembers = [
     "nationality": "",
     "speaking": "متحدث",
     "note": "",
-    "displayOrder": 7
+    "displayOrder": 8
   },
   {
     "id": "maria-emad-girl",
@@ -1119,7 +1119,7 @@ window.castMembers = [
     "speaking": "متحدث",
     "completedOrder": 28,
     "note": "",
-    "displayOrder": 8
+    "displayOrder": 9
   },
   {
     "id": "mohammed-alshareef-boy",
@@ -1135,7 +1135,7 @@ window.castMembers = [
     "speaking": "متحدث",
     "completedOrder": 29,
     "note": "",
-    "displayOrder": 9
+    "displayOrder": 10
   },
   {
     "id": "wafaa-alsaleh-makeup",
@@ -1159,7 +1159,7 @@ window.castMembers = [
     "speaking": "متحدث",
     "completedOrder": 32,
     "note": "",
-    "displayOrder": 10
+    "displayOrder": 11
   },
   {
     "id": "shayla-ahmed-girl",
@@ -1248,7 +1248,7 @@ window.castMembers = [
     "weight": "29",
     "nationality": "يمني",
     "speaking": "متحدث",
-    "displayOrder": 1,
+    "displayOrder": 2,
     "approvalOrder": 1791470600141
   },
   {
@@ -1341,5 +1341,20 @@ window.castMembers = [
     "speaking": "متحدث",
     "approvalOrder": 1794127112871,
     "displayOrder": 3
+  },
+  {
+    "id": "registration-238c8a91-ad0e-4241-8bcc-f7578c4d9338",
+    "name": "أويس التركي",
+    "category": "boys",
+    "folderUrl": "https://drive.google.com/drive/folders/1q1udu5BDmyO81P0YvZJRW3vwjJtdyUhu",
+    "photoUrl": "https://drive.google.com/thumbnail?id=1yWoh1ylwjwnFaAxLHVbX5qY_awKcjSto&sz=w1000",
+    "imageTitle": "صورة البروفايل",
+    "age": "10",
+    "height": "138",
+    "weight": "32.5",
+    "nationality": "سعودي",
+    "speaking": "متحدث",
+    "approvalOrder": 1794426087744,
+    "displayOrder": 1
   }
 ];
