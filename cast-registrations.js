@@ -62,7 +62,7 @@
       officialLabel.textContent = officialConfigured ? 'مزامنة الملفات المعتمدة' : 'ربط المجلدات الأساسية';
       window.lucide?.createIcons();
       const approve=document.querySelector('#registration-approve');
-      if(approve && record && !writing && !uncertain)approve.disabled=!canApprove(record);
+      if(approve && record && !writing && !uncertain && !dirty)approve.disabled=!canApprove(record);
       driveStatus.textContent = state.connected
         ? (state.officialFoldersConfigured ? 'الحفظ في مجلدات الكاست الأساسية' : 'الحفظ الحالي في مجلد التسجيلات المستقل')
           + (state.officialFoldersReady && !officialConfigured ? ' · المجلدات الأساسية متاحة للربط' : '')
@@ -137,7 +137,7 @@
     }
     input.value = String(value ?? '');
     if (key === 'whatsapp') { input.type = 'tel'; input.dir = 'ltr'; }
-    if (['age', 'height', 'weight', 'reviewedCount'].includes(key)) input.inputMode = 'decimal';
+    if (['age', 'height', 'weight'].includes(key)) input.inputMode = 'decimal';
     label.append(input); parent.append(label);
     return input;
   }
@@ -200,7 +200,6 @@
       anchor.target = '_blank'; anchor.rel = 'noopener noreferrer';
       form.append(anchor);
       const checks = make('div', undefined, 'registration-grid');
-      inputField(checks, 'reviewedCount', 'عدد الأعمال التي راجعتها (2–10)', value.works.reviewedCount);
       const label = make('label', undefined, 'registration-options');
       const checkbox = make('input'); checkbox.type = 'checkbox'; checkbox.name = 'accessible'; checkbox.checked = value.works.accessible;
       label.append(checkbox, make('span', 'المجلد متاح للعملاء وراجعت محتواه')); checks.append(label); form.append(checks);
@@ -239,15 +238,32 @@
     }
     window.lucide?.createIcons();
     let saving = false;
-    form.addEventListener('input', () => { dirty = true;approve.disabled=true; });
-    form.addEventListener('change', () => { dirty = true;approve.disabled=true; });
+    function draft() {
+      if (value.status === 'approving') return { value };
+      const fields = Object.fromEntries(new FormData(form));
+      fields.accessible = fields.accessible === 'on';
+      const validated = rules.validate({ ...fields, worksMode: value.works.mode, folderUrl: value.works.folderUrl });
+      return { fields, value: { ...value, profile: validated.profile, privateContact: validated.privateContact,
+        works: { ...value.works, accessible: fields.accessible } } };
+    }
+    function changed() { dirty = true; approve.disabled = !canApprove(draft().value); }
+    form.addEventListener('input', changed);
+    form.addEventListener('change', changed);
     approve.addEventListener('click',async()=>{
-      if(writing || uncertain || dirty || !canApprove(value))return;
-      if(!await confirmApproval(value.profile.name))return;
+      const pending = draft();
+      if(writing || uncertain || !canApprove(pending.value))return;
+      if(!await confirmApproval(pending.value.profile.name))return;
       writing=true;save.disabled=true;approve.disabled=true;reject.disabled=true;
+      form.querySelectorAll('input,select,textarea').forEach(input=>{input.disabled=true;});
       try {
-        await request('approve',{id:value.id,revision:value.revision});
-        const current=await request('detail',{id:value.id});render(current.record);
+        let current = value;
+        if (dirty) {
+          current = (await request('edit', { id:value.id, revision:value.revision, fields:pending.fields })).record;
+          record = current; dirty = false;
+        }
+        if (!canApprove(current)) throw new Error('راجع البيانات ومجلد الأعمال قبل الاعتماد.');
+        await request('approve',{id:current.id,revision:current.revision});
+        const refreshed=await request('detail',{id:value.id});render(refreshed.record);
         status.textContent='بدأ الاعتماد في الخلفية.';
       } catch(error) {
         uncertain=true;message.textContent=error.message+' تحقق من حالة الطلب قبل إعادة المحاولة.';
@@ -262,7 +278,6 @@
       const fields = Object.fromEntries(new FormData(form));
       const validated = rules.validate({ ...fields, worksMode: value.works.mode, folderUrl: value.works.folderUrl });
       if (!validated.valid) { message.textContent = Object.values(validated.errors).join('؛ '); return; }
-      fields.reviewedCount = fields.reviewedCount ? Number(rules.normalizeDigits(fields.reviewedCount)) : null;
       fields.accessible = fields.accessible === 'on';
       saving = true; writing = true; save.disabled = true; reject.disabled = true; message.textContent = '';
       try {

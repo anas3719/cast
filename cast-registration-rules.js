@@ -127,10 +127,8 @@
     if (Array.isArray(request.attachments) && request.attachments.some(file => file.verified !== true)) {
       errors.push("لم يكتمل التحقق من المرفقات في التخزين الخاص");
     }
-    if (request.works?.mode === "drive"
-      && (!Number.isInteger(request.works.reviewedCount) || request.works.reviewedCount < 2 || request.works.reviewedCount > 10
-        || request.works.accessible !== true)) {
-      errors.push("تحقق من إتاحة مجلد الدرايف ووجود عملين إلى 10 أعمال فيه");
+    if (request.works?.mode === "drive" && request.works.accessible !== true) {
+      errors.push("أكد أن مجلد الأعمال متاح للعملاء وأنك راجعت محتواه");
     }
     return { valid: errors.length === 0, errors };
   }

@@ -42,6 +42,30 @@ test('intake stores normalized local or international contact without exposing i
   }
 });
 
+test('owner review saves without a count and ignores retired count input', async () => {
+  const { createRegistrationHandler } = await import('../lib/registration-handler.mjs');
+  for (const reviewedCount of [undefined, 17]) {
+    const record = { id:'12345678-1234-4123-8123-123456789abc', revision:1, status:'pending',
+      works_mode:'drive', supplied_folder_url:'https://drive.google.com/drive/folders/SyntheticFolderOnly123',
+      drive_reviewed_count:null };
+    let saved;
+    const query = { select:()=>query, eq:()=>query, maybeSingle:async()=>({ data:record }), order:async()=>({ data:[] }) };
+    const handler = createRegistrationHandler({ rules,
+      db:{ from:()=>query, rpc:async(name,args)=>{
+        assert.equal(name,'cast_edit_registration'); saved=args.fields;
+        return { data:{ ...record, ...saved, revision:2 } };
+      } }, env:name=>name==='SUPABASE_URL'?'https://vmnkdbceyqudcxddvljx.supabase.co':'',
+      fetcher:async()=>Response.json({ authorized:true }) });
+    const request=req({ action:'edit', id:record.id, revision:1, fields:{ name:'Synthetic review', gender:'male',
+      age:25,height:175,weight:70,speaking:'yes',whatsapp:'+966500000000',ownerNote:'',accessible:true,
+      ...(reviewedCount===undefined?{}:{reviewedCount}) } });
+    request.headers.set('Authorization','Bearer synthetic-owner');
+    assert.equal((await handler(request)).status,200);
+    assert.equal(saved.accessible,true);
+    assert.equal(saved.reviewedCount,null);
+  }
+});
+
 test('review list excludes published registrations without deleting their private records',async()=>{
   const {createRegistrationHandler}=await import('../lib/registration-handler.mjs');
   let statuses,selected,limit,ordered;

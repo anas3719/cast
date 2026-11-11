@@ -35,7 +35,7 @@ begin
        not between (case when r.works_mode='drive' then 1 else 3 end) and (case when r.works_mode='drive' then 1 else 11 end)
     or not exists(select 1 from public.cast_registration_files where registration_id=request_id and slot=0)
     or exists(select 1 from public.cast_registration_files where registration_id=request_id and verified_at is null)
-    or (r.works_mode='drive' and (not r.drive_access_verified or r.drive_reviewed_count is null))
+    or (r.works_mode='drive' and not r.drive_access_verified)
     then raise exception 'Media not ready'; end if;
   select * into i from public.cast_registration_integrations where id='google-drive' for update;
   if not found then raise exception 'Drive not connected'; end if;

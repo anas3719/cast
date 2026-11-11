@@ -26,8 +26,10 @@ Scope: anas3719/cast only. Do not modify the portfolio repository.
 - No additional guardian workflow, as explicitly requested by the owner.
 - Submit creates a private pending record, never a public catalog profile.
 - Upload mode requires 2-10 image/video works in addition to the portrait.
-- Drive mode requires a valid folder URL; owner verifies access and 2-10 works
-  inside that folder before approval. Do not trust an applicant-supplied count.
+- Drive mode requires a valid folder URL. The owner confirms the folder is
+  accessible and its contents reviewed; no work count is required for approval.
+  Approval saves the review checkbox and valid pending edits before publishing.
+  The 2-10 attachment limit remains unchanged for upload mode only.
 - No video compression. Owner approved 2 GiB per video (2,147,483,648 bytes).
   Incremental project compute cost was approved. Global and bucket-level
   limits were both verified at 2 GiB; no organization spend-cap change.

@@ -95,15 +95,18 @@ test('videos allow 2 GiB, reject larger files and have no hidden 50 MB cap', () 
   assert.equal(rules.validateAttachments(files, 'upload').valid, false);
 });
 
-test('Drive link mode needs an explicit owner review of 2 to 10 accessible works', () => {
+test('Drive approval requires owner review but no reviewed work count', () => {
   const value = request();
   value.attachments = [portrait()];
   value.works = { mode: 'drive', folderUrl: 'https://drive.google.com/drive/folders/abcdefghijk' };
   assert.equal(rules.reviewReadiness(value).valid, false);
-  value.works.reviewedCount = 2;
   value.works.accessible = true;
   assert.equal(rules.reviewReadiness(value).valid, true);
-  value.works.reviewedCount = 11;
+  for (const count of [null, 0, 2, 10, 17]) {
+    value.works.reviewedCount = count;
+    assert.equal(rules.reviewReadiness(value).valid, true);
+  }
+  value.works.accessible = false;
   assert.equal(rules.reviewReadiness(value).valid, false);
 });
 

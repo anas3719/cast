@@ -5,6 +5,7 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const id = '00000000-0000-4000-8000-000000000000';
 let created, failNextEdit = false, failNextApproval=false, completeApproval=false, approvalReads=0;
+const reviewActions = [];
 const uploads = new Map();
 const record = { id, profileId: 'registration-' + id, revision: 1, status: 'pending',
   profile: { name: 'ملف تجريبي', gender: 'female', age: 26, height: 165, weight: 55, nationality: '', speaking: 'yes', category: 'women' },
@@ -15,6 +16,8 @@ const api = 'https://vmnkdbceyqudcxddvljx.supabase.co/functions/v1/cast-registra
 const json = (res, data) => { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(data)); };
 http.createServer(async (req, res) => {
   const url = new URL(req.url, base);
+  if (url.pathname === '/__fixture/review-state') return json(res, { status: record.status,
+    accessible: record.works.accessible, reviewedCount: record.works.reviewedCount, actions: reviewActions });
   if (url.pathname === '/__fixture/challenge.js') {
     res.setHeader('Content-Type', 'application/javascript');
     return res.end('window.turnstile={render:(target,config)=>{config.callback("synthetic");return 1;},reset:()=>{}};');
@@ -38,15 +41,18 @@ http.createServer(async (req, res) => {
     }
     if (body.action === 'drive-status') return json(res, { connected: true, connectedAt: '2026-10-01T00:00:00Z',approvalReady:true });
     if (body.action === 'approve') {
+      reviewActions.push({ action: 'approve', revision: body.revision });
       record.status='approving';record.revision++;record.approval={status:'queued',phase:1};
       if(failNextApproval){failNextApproval=false;res.writeHead(503,{'Content-Type':'application/json'});return res.end(JSON.stringify({message:'انقطع تأكيد الاعتماد التجريبي'}));}
       return json(res,{id,status:'approving'});
     }
     if (body.action === 'edit') {
+      reviewActions.push({ action: 'edit', revision: body.revision,
+        accessible: body.fields.accessible, hasCount: Object.hasOwn(body.fields, 'reviewedCount') });
       record.revision++;
       for (const key of ['name', 'gender', 'age', 'height', 'weight', 'nationality', 'speaking']) record.profile[key] = body.fields[key];
       record.privateContact.whatsapp = body.fields.whatsapp;
-      record.works.reviewedCount=body.fields.reviewedCount;record.works.accessible=body.fields.accessible;
+      record.works.accessible=body.fields.accessible;
       record.ownerNote=body.fields.ownerNote;
       if (failNextEdit) { failNextEdit = false; res.writeHead(503, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify({ message: 'انقطع تأكيد الحفظ التجريبي' })); }
       return json(res, { record });
@@ -71,10 +77,13 @@ http.createServer(async (req, res) => {
   if (filename.endsWith('.js')) content = Buffer.from(content.toString().replace(api, base + '/__fixture/api')
     .replace('https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit', base + '/__fixture/challenge.js'));
   if (filename.endsWith('cast-admin.html')) {
-    failNextEdit = url.searchParams.get('fixture') === 'uncertain';
+    failNextEdit = ['uncertain','review-save-uncertain'].includes(url.searchParams.get('fixture'));
     failNextApproval=url.searchParams.get('fixture')==='approval-uncertain';
     completeApproval=url.searchParams.get('fixture')==='approval-complete';approvalReads=0;
     record.status='pending';delete record.approval;
+    if (['drive-review','review-save-uncertain'].includes(url.searchParams.get('fixture'))) {
+      record.works.accessible = false; record.works.reviewedCount = null; reviewActions.length = 0;
+    }
     content = Buffer.from(content.toString().replace(/cast-admin-login\.js[^" ]*/, '__fixture/login.js'));
   }
   const types = { '.html': 'text/html', '.js': 'application/javascript', '.css': 'text/css', '.jpg': 'image/jpeg', '.png': 'image/png' };
