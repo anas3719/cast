@@ -55,12 +55,21 @@
   const open=()=>{content.replaceChildren();status.textContent='';dialog.showModal();icons();};
   const create=iconButton('رابط تعديل البيانات','link',()=>run(async()=>{
     const selected=window.castProfileEditBridge.selected();if(!selected)return;open();status.textContent='جاري تجهيز الرابط';
-    const data=await request('create',{profileId:selected.member.id,simple:selected.simple,fields:pick(selected.member,selected.simple)});
-    status.textContent='رابط خاص لمدة 30 يومًا. إنشاء رابط جديد يلغي الرابط السابق.';
-    const input=make('input');input.readOnly=true;input.dir='ltr';input.value=data.url;input.style.width='100%';input.setAttribute('aria-label','رابط تعديل البيانات');
-    const copy=iconButton('نسخ الرابط','copy',async()=>{try{await navigator.clipboard.writeText(data.url);status.textContent='تم نسخ الرابط';}catch{input.select();status.textContent='حدد الرابط وانسخه';}});
+    let currentUrl='';
+    const input=make('input');input.readOnly=true;input.dir='ltr';input.style.width='100%';input.setAttribute('aria-label','رابط تعديل البيانات');
+    const copy=iconButton('نسخ الرابط','copy',async()=>{try{await navigator.clipboard.writeText(currentUrl);status.textContent='تم نسخ الرابط';}catch{input.select();status.textContent='حدد الرابط وانسخه';}});copy.disabled=true;
+    const rotate=iconButton('تغيير الرابط','refresh-cw',()=>{if(window.confirm('سيتم إلغاء الرابط القديم واستبداله برابط جديد. هل تريد المتابعة؟'))run(()=>getLink(true));});
+    const revoke=iconButton('إلغاء الرابط','unlink',()=>run(async()=>{await request('revoke',{profileId:selected.member.id});input.value='';currentUrl='';copy.disabled=true;status.textContent='تم إلغاء الرابط.';}));
+    async function getLink(shouldRotate=false){
+      rotate.disabled=true;copy.disabled=true;status.textContent='جاري تجهيز الرابط';
+      try{
+        const data=await request('create',{profileId:selected.member.id,simple:selected.simple,fields:pick(selected.member,selected.simple),rotate:shouldRotate});
+        currentUrl=data.url || '';input.value=currentUrl;copy.disabled=!currentUrl;
+        status.textContent=data.revoked?'الرابط ملغى.':'رابط ثابت · فعّال';
+      }finally{rotate.disabled=false;}
+    }
     content.append(make('h3',selected.member.name),input,copy);
-    content.append(iconButton('إلغاء الرابط','unlink',()=>run(async()=>{await request('revoke',{profileId:selected.member.id});input.value='';copy.disabled=true;status.textContent='تم إلغاء الرابط.';})));icons();
+    content.append(rotate,revoke);icons();await getLink();
   }));
   create.hidden=true;toolbar.prepend(create);
   window.addEventListener('cast:profile-selected',e=>{create.hidden=!e.detail.id;});
