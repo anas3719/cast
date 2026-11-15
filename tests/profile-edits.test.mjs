@@ -3,11 +3,14 @@ import assert from 'node:assert/strict';
 import {createProfileEditHandler,normalizeFields} from '../lib/profile-edit-handler.mjs';
 const fields={name:'بدرية الزهراني',age:'',height:'',weight:'',nationality:'سعودية',speaking:'متحدثة',note:''};
 const origin='https://anas3719.github.io';
-function setup(){
+function setup(publish = false){
   const rows=[];
   const db={from(){let filters=[],op='read',values,unique=false;
     const q={select(){return q;},eq(k,v){filters.push(r=>r[k]===v);return q;},is(k,v){filters.push(r=>r[k]===v || (v===null && r[k]==null));return q;},gt(k,v){filters.push(r=>r[k]>v);return q;},not(k,_op,v){filters.push(r=>r[k]!==v && r[k]!=null);return q;},order(){return q;},limit(){return q;},maybeSingle(){unique=true;return q;},update(v){op='update';values=v;return q;},insert(v){op='insert';values=v;return q;},then(resolve){let found=rows.filter(r=>filters.every(f=>f(r)));if(op==='insert'){const r={...values,proposal:null,revision:crypto.randomUUID()};rows.push(r);found=[r];}if(op==='update')found.forEach(r=>Object.assign(r,values));return Promise.resolve({data:unique?(found[0]||null):found,error:null}).then(resolve);}};return q;}};
-  const handler=createProfileEditHandler({db,fetcher:async(_url,init)=>new Response(JSON.stringify({authorized:init.headers.Authorization==='Bearer owner'}),{status:init.headers.Authorization==='Bearer owner'?200:401})});
+  const handler=createProfileEditHandler({db,fetcher:async(url,init)=>{
+    if(url.endsWith('/profile-edit-publish'))return Response.json(publish?{commit:'a'.repeat(40)}:{message:'retry'},{status:publish?200:503});
+    return new Response(JSON.stringify({authorized:init.headers.Authorization==='Bearer owner'}),{status:init.headers.Authorization==='Bearer owner'?200:401});
+  }});
   const call=async(action,body={},token='owner',o=origin)=>{
     const response=await handler(new Request('https://test.invalid',{method:'POST',headers:{origin:o,authorization:`Bearer ${token}`},body:JSON.stringify({...body,action})}));
     return {status:response.status,body:await response.json()};
@@ -33,7 +36,7 @@ test('owner creates one scoped link and anonymous requests cannot create or list
 });
 test('submission cannot change another profile or publish; revocation and expiry fail closed',async()=>{
   const {rows,call}=setup();const r=await call('create',{profileId:'badrya',fields});const token=r.body.url.split('#')[1];
-  assert.equal((await call('submit',{profileId:'another',fields:{...fields,age:'27'}},token)).status,200);
+  assert.equal((await call('submit',{profileId:'another',fields:{...fields,age:'27'}},token)).status,503);
   assert.equal(rows.length,1);assert.equal(rows[0].profile_id,'badrya');assert.equal(rows[0].snapshot.age,'');assert.equal(rows[0].proposal.age,'27');
   assert.equal((await call('submit',{fields:{...fields,category:'men'}},token)).status,400);
   await call('revoke',{profileId:'badrya'});assert.equal((await call('load',{},token)).status,401);
@@ -54,4 +57,11 @@ test('malformed/oversized payloads and invalid actions are rejected',async()=>{
   const {call}=setup();assert.equal((await call('unknown')).status,400);
   assert.equal((await call('create',{profileId:'../other',fields})).status,400);
   assert.equal((await call('create',{profileId:'valid',fields:{...fields,note:'x'.repeat(13000)}})).status,413);
+});
+test('successful save publishes immediately without owner approval',async()=>{
+  const {rows,call}=setup(true);const created=await call('create',{profileId:'badrya',fields});
+  const token=created.body.url.split('#')[1];
+  const result=await call('submit',{fields:{...fields,age:'27'}},token);
+  assert.equal(result.status,200);assert.equal(result.body.saved,true);assert.equal(result.body.commit,'a'.repeat(40));
+  assert.equal(rows[0].snapshot.age,'27');assert.equal(rows[0].proposal,null);
 });

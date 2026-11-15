@@ -5,7 +5,7 @@
   const pick=(m,simple)=>Object.fromEntries((simple?['name']:Object.keys(labels)).map(k=>[k,String(m[k]||'')]));
   async function request(action,body={},token){
     let response;
-    if(token) response=await fetch(endpoint,{method:'POST',cache:'no-store',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify({...body,action}),signal:AbortSignal.timeout(30000)});
+    if(token) response=await fetch(endpoint,{method:'POST',cache:'no-store',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify({...body,action}),signal:AbortSignal.timeout(action==='submit'?130000:30000)});
     else {
       const login=window.castAdminLogin;
       if(!login || !await login.refresh()) throw new Error('سجّل الدخول بحساب GitHub أولًا.');
@@ -36,11 +36,11 @@
           else {input.maxLength=key==='note'?1000:120;if(['age','height','weight'].includes(key))input.inputMode='decimal';}
           input.value=value;if(key==='name')input.required=true;label.append(input);grid.append(label);
         }
-        const save=make('button',null,'button button-primary');save.type='submit';const i=make('i');i.dataset.lucide='send';save.append(i,make('span','إرسال التعديلات'));form.append(grid,save);form.hidden=false;
-        status.textContent=data.pending?'تعديلاتك بانتظار مراجعة الإدارة.':'تعديل البيانات';icons();
+        const save=make('button',null,'button button-primary');save.type='submit';const i=make('i');i.dataset.lucide='save';save.append(i,make('span','حفظ التعديلات'));form.append(grid,save);form.hidden=false;
+        status.textContent=data.pending?'يوجد تعديل لم يكتمل نشره. اضغط حفظ للمحاولة مجددًا.':'تعديل البيانات';icons();
         form.onsubmit=async e=>{e.preventDefault();save.disabled=true;status.textContent='جاري الحفظ';try{
           await request('submit',{fields:Object.fromEntries(new FormData(form))},token);
-          status.textContent='تم إرسال التعديلات للإدارة للمراجعة والاعتماد.';
+          status.textContent='تم حفظ التعديلات وبدأ نشرها على الموقع. قد يستغرق ظهورها دقيقة.';
         }catch(error){status.textContent=error.message;}finally{save.disabled=false;}};
       }catch(error){status.textContent=error.message;}
     };show();return;
@@ -63,16 +63,5 @@
   }));
   create.hidden=true;toolbar.prepend(create);
   window.addEventListener('cast:profile-selected',e=>{create.hidden=!e.detail.id;});
-  const load=async()=>{status.textContent='جاري التحميل';const data=await request('list');content.replaceChildren();status.textContent=data.rows.length?`${data.rows.length} طلب تعديل`:'لا توجد تعديلات بانتظار المراجعة.';
-    for(const row of data.rows){
-      const section=make('section');section.style.borderBlockEnd='1px solid var(--border, #294048)';section.style.paddingBlock='16px';section.append(make('h3',row.snapshot.name));
-      const dl=make('dl');for(const [k,v]of Object.entries(row.proposal)){if(!Object.hasOwn(labels,k)||v===row.snapshot[k])continue;dl.append(make('dt',labels[k]),make('dd',`${row.snapshot[k]||'—'} ← ${v||'—'}`));}section.append(dl);
-      const approve=iconButton('اعتماد ونشر','check',()=>run(async()=>{approve.disabled=true;status.textContent='جاري النشر';try{await window.castProfileEditBridge.approve(row.profile_id,row.proposal,row.snapshot);await request('resolve',{profileId:row.profile_id,revision:row.revision,approved:true});await load();}finally{approve.disabled=false;}}));
-      const reject=iconButton('رفض التعديل','x',()=>run(async()=>{reject.disabled=true;try{await request('resolve',{profileId:row.profile_id,revision:row.revision,approved:false});await load();}finally{reject.disabled=false;}}));
-      section.append(approve,reject);content.append(section);
-    }icons();
-  };
-  const pending=iconButton('تعديلات الكاست','file-pen-line',()=>{open();run(load);});
-  document.querySelector('#add-profile')?.parentElement?.append(pending);
-  if(!pending.isConnected)toolbar.prepend(pending);icons();
+  icons();
 })();

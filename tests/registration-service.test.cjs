@@ -10,6 +10,15 @@ const response = () => ({ statusCode: 0, setHeader() {}, end(body) { this.body =
 const req = body => new Request('https://vmnkdbceyqudcxddvljx.supabase.co/functions/v1/cast-registration', {
   method: 'POST', headers: { Origin: ORIGIN, 'Content-Type': 'application/json' }, body: JSON.stringify(body),
 });
+
+test('notification count is owner-only and contains no applicant details', async () => {
+  const {createRegistrationHandler}=await import('../lib/registration-handler.mjs');
+  const query={select(_fields,opts){assert.deepEqual(opts,{count:'exact',head:true});return query;},eq(k,v){assert.equal(k,'status');assert.equal(v,'pending');return Promise.resolve({count:7,data:null,error:null});}};
+  const handler=createRegistrationHandler({rules,db:{from:()=>query},env:n=>({SUPABASE_URL:'https://vmnkdbceyqudcxddvljx.supabase.co',SUPABASE_SERVICE_ROLE_KEY:'synthetic',REGISTRATION_OPEN:'true',APPROVAL_PIPELINE_READY:'true'})[n]||'',fetcher:async()=>Response.json({authorized:true})});
+  assert.equal((await handler(req({action:'count'}))).status,401);
+  const request=new Request('https://test.invalid',{method:'POST',headers:{Origin:ORIGIN,Authorization:'Bearer synthetic','Content-Type':'application/json'},body:'{"action":"count"}'});
+  const r=await handler(request);assert.equal(r.status,200);assert.deepEqual(await r.json(),{count:7});
+});
 test('intake stores normalized local or international contact without exposing it in its receipt', async () => {
   const { createRegistrationHandler } = await import('../lib/registration-handler.mjs');
   for (const whatsapp of ['0500000000', '500000000', '+966500000000', '00966500000000', '966500000000']) {

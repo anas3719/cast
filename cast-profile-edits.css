@@ -5,3 +5,5 @@
 .form-actions { flex-wrap: wrap; }
 .profile-edit-page textarea { min-height: 100px; }
 .profile-edit-page #edit-fields > .button { margin-block-start: 24px; }
+.notification-button { position: relative; overflow: visible; }
+.notification-count { position: absolute; inset-block-start: -6px; inset-inline-start: -6px; min-width: 18px; padding: 2px 4px; border-radius: 8px; background: #cf454f; color: #fff; font-size: 12px; line-height: 16px; text-align: center; }
