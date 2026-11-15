@@ -13,7 +13,7 @@ window.castMembers = [
     "speaking": "متحدثة",
     "displayOrder": 1,
     "approvalOrder": 1794766527255,
-    "note": "أصنع من الألم بصيص أمل  نستند عليه لنحيا من جديد 🤍"
+    "note": ""
   },
   {
     "id": "anas-omar",
