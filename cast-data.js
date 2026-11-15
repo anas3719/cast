@@ -6,14 +6,14 @@ window.castMembers = [
     "folderUrl": "https://drive.google.com/drive/folders/1MtOgw4y_RMxALBzGPxe-JjmwgrduPo9k",
     "photoUrl": "https://drive.google.com/thumbnail?id=1lqv-GksUoJUD4t9RzVb2OeGQ8FwKbTvJ&sz=w1000",
     "imageTitle": "907330134_17920519956539831_7628157717621703176_n.jpg",
-    "age": "",
-    "height": "",
-    "weight": "",
+    "age": "36",
+    "height": "160",
+    "weight": "47",
     "nationality": "سعودية",
     "speaking": "متحدثة",
     "displayOrder": 1,
     "approvalOrder": 1794766527255,
-    "note": ""
+    "note": "أصنع من الألم بصيص أمل  نستند عليه لنحيا من جديد 🤍"
   },
   {
     "id": "anas-omar",
