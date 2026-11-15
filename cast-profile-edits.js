@@ -28,9 +28,10 @@
         const data=await request('load',{},token);
         form.replaceChildren();
         const grid=make('div',null,'registration-grid');
-        for(const [key,value] of Object.entries(data.fields)){
-          if(!Object.hasOwn(labels,key))continue;
-          const label=make('label',null,'field');label.append(make('span',labels[key]));
+        for(const key of Object.keys(labels)){
+          if(!Object.hasOwn(data.fields,key))continue;
+          const value=data.fields[key];
+          const label=make('label',null,'field'+(['name','note'].includes(key)?' registration-wide':''));label.append(make('span',labels[key]));
           const input=make(key==='speaking'?'select':key==='note'?'textarea':'input');input.name=key;
           if(key==='speaking')for(const v of ['','متحدث','متحدثة','غير متحدث','غير متحدثة']){const o=make('option',v||'يضاف لاحقًا');o.value=v;input.append(o);}
           else {input.maxLength=key==='note'?1000:120;if(['age','height','weight'].includes(key))input.inputMode='decimal';}
