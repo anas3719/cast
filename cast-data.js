@@ -1,7 +1,7 @@
 window.castMembers = [
   {
     "id": "badrya-alzahrani",
-    "name": "بدرية الزهراني",
+    "name": "بدرية  الزهراني",
     "category": "women",
     "folderUrl": "https://drive.google.com/drive/folders/1MtOgw4y_RMxALBzGPxe-JjmwgrduPo9k",
     "photoUrl": "https://drive.google.com/thumbnail?id=1lqv-GksUoJUD4t9RzVb2OeGQ8FwKbTvJ&sz=w1000",
