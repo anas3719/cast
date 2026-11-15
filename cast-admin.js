@@ -650,6 +650,7 @@
     updateCompletionPreview();
     formDirty = false;
     elements.publishChanges.disabled = !dataDirty;
+    window.dispatchEvent(new CustomEvent('cast:profile-selected', {detail:{id:member.id || null}}));
   }
 
   function confirmDiscardForm() {
@@ -856,6 +857,32 @@
     renderProfiles();
     await publishChanges();
   }
+
+  window.castProfileEditBridge = {
+    selected() {
+      if (isNewProfile || !selectedId) return null;
+      const member = members.find(m => m.id === selectedId);
+      if (!member) return null;
+      return {member: {...member}, simple:isSimpleCategory(member.category)};
+    },
+    async approve(id, fields, baseline) {
+      if (formDirty || dataDirty) throw new Error('احفظ تعديلاتك الحالية قبل اعتماد طلب آخر.');
+      const member = members.find(m => m.id === id);
+      if (!member) throw new Error('لم يعد البروفايل موجودًا.');
+      const allowed = isSimpleCategory(member.category) ? ['name'] : ['name','age','height','weight','nationality','speaking','note'];
+      if (Object.keys(fields).some(k => !allowed.includes(k))) throw new Error('خانات التعديل غير صحيحة.');
+      const changes = Object.fromEntries(Object.entries(fields).filter(([k,v]) => v !== baseline[k]));
+      for (const [k,v] of Object.entries(changes)) {
+        if (String(member[k] || '') !== baseline[k] && String(member[k] || '') !== v) {
+          throw new Error('تغيّرت بيانات هذا البروفايل بعد إرسال الرابط. راجع التعديل يدويًا قبل اعتماده.');
+        }
+      }
+      selectProfile(id);
+      fillForm({...member,...changes});
+      await saveProfile({preventDefault(){}});
+      if (dataDirty) throw new Error('لم يكتمل النشر. الطلب محفوظ للمراجعة.');
+    },
+  };
 
   function requestDelete() {
     const member = members.find((item) => item.id === selectedId);

@@ -1,0 +1,78 @@
+(function(){
+  'use strict';
+  const endpoint='https://vmnkdbceyqudcxddvljx.supabase.co/functions/v1/cast-profile-edit';
+  const labels={name:'الاسم',age:'العمر',height:'الطول',weight:'الوزن',nationality:'الجنسية',speaking:'التحدث',note:'ملاحظة'};
+  const pick=(m,simple)=>Object.fromEntries((simple?['name']:Object.keys(labels)).map(k=>[k,String(m[k]||'')]));
+  async function request(action,body={},token){
+    let response;
+    if(token) response=await fetch(endpoint,{method:'POST',cache:'no-store',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify({...body,action}),signal:AbortSignal.timeout(30000)});
+    else {
+      const login=window.castAdminLogin;
+      if(!login || !await login.refresh()) throw new Error('سجّل الدخول بحساب GitHub أولًا.');
+      response=await login.profileEdits(action,body);
+    }
+    const data=await response.json();
+    if(!response.ok) throw new Error(data.message || 'تعذر إتمام الطلب.');
+    return data;
+  }
+  const make=(tag,text,cls)=>{const el=document.createElement(tag);if(text)el.textContent=text;if(cls)el.className=cls;return el;};
+  const iconButton=(text,icon,handler)=>{const b=make('button',null,'button button-secondary');b.type='button';const i=make('i');i.dataset.lucide=icon;b.append(i,make('span',text));b.onclick=handler;return b;};
+  function icons(){window.lucide?.createIcons();}
+  if(document.body.classList.contains('profile-edit-page')){
+    const status=document.querySelector('#edit-status'),form=document.querySelector('#edit-fields');
+    const token=location.hash.slice(1);
+    history.replaceState(null,'',location.pathname);
+    if(!/^[a-f0-9]{64}$/.test(token)){status.textContent='الرابط غير صالح أو انتهت صلاحيته.';return;}
+    const show=async()=>{
+      try{
+        const data=await request('load',{},token);
+        form.replaceChildren();
+        const grid=make('div',null,'registration-grid');
+        for(const [key,value] of Object.entries(data.fields)){
+          if(!Object.hasOwn(labels,key))continue;
+          const label=make('label',null,'field');label.append(make('span',labels[key]));
+          const input=make(key==='speaking'?'select':key==='note'?'textarea':'input');input.name=key;
+          if(key==='speaking')for(const v of ['','متحدث','متحدثة','غير متحدث','غير متحدثة']){const o=make('option',v||'يضاف لاحقًا');o.value=v;input.append(o);}
+          else {input.maxLength=key==='note'?1000:120;if(['age','height','weight'].includes(key))input.inputMode='decimal';}
+          input.value=value;if(key==='name')input.required=true;label.append(input);grid.append(label);
+        }
+        const save=make('button',null,'button button-primary');save.type='submit';const i=make('i');i.dataset.lucide='send';save.append(i,make('span','إرسال التعديلات'));form.append(grid,save);form.hidden=false;
+        status.textContent=data.pending?'تعديلاتك بانتظار مراجعة الإدارة.':'تعديل البيانات';icons();
+        form.onsubmit=async e=>{e.preventDefault();save.disabled=true;status.textContent='جاري الحفظ';try{
+          await request('submit',{fields:Object.fromEntries(new FormData(form))},token);
+          status.textContent='تم إرسال التعديلات للإدارة للمراجعة والاعتماد.';
+        }catch(error){status.textContent=error.message;}finally{save.disabled=false;}};
+      }catch(error){status.textContent=error.message;}
+    };show();return;
+  }
+  const toolbar=document.querySelector('.form-actions');
+  if(!toolbar)return;
+  const dialog=make('dialog',null,'admin-dialog profile-edits-dialog');dialog.setAttribute('aria-label','روابط وتعديلات البروفايلات');
+  const head=make('div',null,'dialog-heading');head.append(make('h2','تعديلات الكاست'));const close=iconButton('إغلاق','x',()=>dialog.close());head.append(close);dialog.append(head);
+  const status=make('p');status.setAttribute('role','status');const content=make('div');dialog.append(status,content);document.body.append(dialog);
+  const run=async fn=>{try{await fn();}catch(e){status.textContent=e.message;}};
+  const open=()=>{content.replaceChildren();status.textContent='';dialog.showModal();icons();};
+  const create=iconButton('رابط تعديل البيانات','link',()=>run(async()=>{
+    const selected=window.castProfileEditBridge.selected();if(!selected)return;open();status.textContent='جاري تجهيز الرابط';
+    const data=await request('create',{profileId:selected.member.id,simple:selected.simple,fields:pick(selected.member,selected.simple)});
+    status.textContent='رابط خاص لمدة 30 يومًا. إنشاء رابط جديد يلغي الرابط السابق.';
+    const input=make('input');input.readOnly=true;input.dir='ltr';input.value=data.url;input.style.width='100%';input.setAttribute('aria-label','رابط تعديل البيانات');
+    const copy=iconButton('نسخ الرابط','copy',async()=>{try{await navigator.clipboard.writeText(data.url);status.textContent='تم نسخ الرابط';}catch{input.select();status.textContent='حدد الرابط وانسخه';}});
+    content.append(make('h3',selected.member.name),input,copy);
+    content.append(iconButton('إلغاء الرابط','unlink',()=>run(async()=>{await request('revoke',{profileId:selected.member.id});input.value='';copy.disabled=true;status.textContent='تم إلغاء الرابط.';})));icons();
+  }));
+  create.hidden=true;toolbar.prepend(create);
+  window.addEventListener('cast:profile-selected',e=>{create.hidden=!e.detail.id;});
+  const load=async()=>{status.textContent='جاري التحميل';const data=await request('list');content.replaceChildren();status.textContent=data.rows.length?`${data.rows.length} طلب تعديل`:'لا توجد تعديلات بانتظار المراجعة.';
+    for(const row of data.rows){
+      const section=make('section');section.style.borderBlockEnd='1px solid var(--border, #294048)';section.style.paddingBlock='16px';section.append(make('h3',row.snapshot.name));
+      const dl=make('dl');for(const [k,v]of Object.entries(row.proposal)){if(!Object.hasOwn(labels,k)||v===row.snapshot[k])continue;dl.append(make('dt',labels[k]),make('dd',`${row.snapshot[k]||'—'} ← ${v||'—'}`));}section.append(dl);
+      const approve=iconButton('اعتماد ونشر','check',()=>run(async()=>{approve.disabled=true;status.textContent='جاري النشر';try{await window.castProfileEditBridge.approve(row.profile_id,row.proposal,row.snapshot);await request('resolve',{profileId:row.profile_id,revision:row.revision,approved:true});await load();}finally{approve.disabled=false;}}));
+      const reject=iconButton('رفض التعديل','x',()=>run(async()=>{reject.disabled=true;try{await request('resolve',{profileId:row.profile_id,revision:row.revision,approved:false});await load();}finally{reject.disabled=false;}}));
+      section.append(approve,reject);content.append(section);
+    }icons();
+  };
+  const pending=iconButton('تعديلات الكاست','file-pen-line',()=>{open();run(load);});
+  document.querySelector('#add-profile')?.parentElement?.append(pending);
+  if(!pending.isConnected)toolbar.prepend(pending);icons();
+})();

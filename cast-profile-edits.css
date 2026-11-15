@@ -1,0 +1,7 @@
+.profile-edits-dialog { padding: 24px; max-height: 85vh; overflow: auto; }
+.profile-edits-dialog input { box-sizing: border-box; min-width: 0; }
+.profile-edits-dialog .button { margin-block: 8px; margin-inline-end: 8px; white-space: normal; }
+.profile-edits-dialog dd { margin-inline-start: 0; overflow-wrap: anywhere; }
+.form-actions { flex-wrap: wrap; }
+.profile-edit-page textarea { min-height: 100px; }
+.profile-edit-page #edit-fields > .button { margin-block-start: 24px; }
