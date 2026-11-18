@@ -15,6 +15,7 @@ window.photographers = [
     id: "ahd-photographer",
     name: "المصورة عهد",
     folderUrl: "https://drive.google.com/drive/folders/1Xmdon-OgK9Rl6rvfFUc1fCcSl3FKdgIT",
-    photoUrl: "assets/ahd-photographer-illustration.webp",
+    photoUrl: "assets/ahd-photographer.webp",
+    role: "مصورة",
   }
 ];
