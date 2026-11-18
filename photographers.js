@@ -154,6 +154,7 @@ function createPhotographerCard(photographer) {
   const selectLabel = document.createElement("label");
   const selectText = document.createElement("span");
   const checkbox = document.createElement("input");
+  const isIllustration = photographer.photoUrl === "assets/ahd-photographer-illustration.webp";
 
   card.className = "photographer-card";
   card.dataset.photographerId = photographer.id;
@@ -167,7 +168,7 @@ function createPhotographerCard(photographer) {
   if (photographer.photoUrl) {
     const image = document.createElement("img");
     image.src = getPhotographerPhotoUrl(photographer.photoUrl);
-    image.alt = photographer.name;
+    image.alt = isIllustration ? "رسم توضيحي لمصورة محجبة تحمل كاميرا" : photographer.name;
     image.loading = "lazy";
     image.addEventListener("error", () => {
       const fallback = document.createElement("span");
@@ -189,14 +190,14 @@ function createPhotographerCard(photographer) {
   name.target = "_blank";
   name.rel = "noreferrer";
   name.textContent = photographer.name;
-  badge.textContent = "مصور";
+  badge.textContent = isIllustration ? "مصورة · رسم توضيحي" : "مصور";
   workLink.className = "photographer-card__work-link";
   workLink.href = photographer.folderUrl;
   workLink.target = "_blank";
   workLink.rel = "noreferrer";
   workLink.textContent = "اضغط لرؤية الأعمال";
   selectLabel.className = "photographer-select";
-  selectText.textContent = "اختيار المصور";
+  selectText.textContent = isIllustration ? "اختيار المصورة" : "اختيار المصور";
   checkbox.type = "checkbox";
   checkbox.checked = selectedPhotographers.has(photographer.id);
   checkbox.addEventListener("change", () => {

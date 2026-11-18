@@ -10,5 +10,11 @@ window.photographers = [
     name: "المصور أسامة",
     folderUrl: "https://drive.google.com/drive/folders/1e4M9Derlr9diKrL_LDOZBXb3d-8I8daT?usp=sharing",
     photoUrl: "assets/osama-photographer.png",
+  },
+  {
+    id: "ahd-photographer",
+    name: "المصورة عهد",
+    folderUrl: "https://drive.google.com/drive/folders/1Xmdon-OgK9Rl6rvfFUc1fCcSl3FKdgIT",
+    photoUrl: "assets/ahd-photographer-illustration.webp",
   }
 ];
